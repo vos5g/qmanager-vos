@@ -38,6 +38,7 @@ This fork keeps evairo176's UI and makes it work on the VOS 5G:
 * **The modem is reached through `qcmd`.** `qcmd` is a small translator from the companion repo, [vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55). It answers QManager's Quectel AT commands using Compal's `cricli`, `atcli` and QMI. QManager never falls back to fake data: if the modem can't answer, the page shows nothing.
 * **It runs from `/data`.** The VOS root filesystem is read-only, so QManager is started by **vosclean**, the reversible hardening package from the same repo. vosclean also provides key-only SSH, a firewall on the cellular side, a blocked vendor update client and custom DNS.
 * **Pages that were placeholders upstream now work on this modem:** Tailscale, custom DNS, the cell scanner, About Device, the System Health Check (34 checks plus a redacted support bundle) and the speed test (real speedtest.net servers; it runs on the modem's single CPU core, so expect at most about 100 Mbps).
+* **Web console** (System Settings → Web Console): a root shell in the browser, served natively by QManager (no ttyd). Off by default, needs a logged-in session, closes on logout, after 30 idle minutes, or when switched off.
 
 The full upstream history is kept, with the VOS changes as separate commits on top (`git log 2cc6795e..`, see [Following upstream](#following-upstream)).
 

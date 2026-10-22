@@ -33,6 +33,13 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CopyableCommand } from "@/components/ui/copyable-command";
@@ -83,6 +90,7 @@ export function TailscaleConnectionCard({
   isDisconnecting,
   isTogglingService,
   isTogglingExitNode,
+  isTogglingRoutes,
   isUninstalling,
   installResult,
   error,
@@ -93,6 +101,8 @@ export function TailscaleConnectionCard({
   stopService,
   setBootEnabled,
   setExitNodeAdvertised,
+  setAcceptRoutes,
+  setUseExitNode,
   uninstall,
   runInstall,
   refresh,
@@ -103,6 +113,17 @@ export function TailscaleConnectionCard({
   const [installVariant, setInstallVariant] = useState<"official" | "tiny">(
     "official",
   );
+  // vosclean: peers that offer to be an exit node (keep the current one listed)
+  const exitNodeOptions = (status?.peers ?? [])
+    .filter(
+      (p) =>
+        (p.exit_node_option || p.exit_node) && getIPv4(p.tailscale_ips) !== "—",
+    )
+    .map((p) => ({
+      ip: getIPv4(p.tailscale_ips),
+      name: p.hostname || trimDNS(p.dns_name),
+      online: p.online,
+    }));
 
   const handleReboot = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -718,6 +739,67 @@ export function TailscaleConnectionCard({
                 disabled={isTogglingExitNode}
                 aria-label={t("tailscale.exit_node_label")}
               />
+            </div>
+
+            {/* vosclean: accept subnet routes */}
+            <Separator />
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-muted-foreground">
+                  {t("tailscale.accept_routes_label", "Accept subnet routes")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    "tailscale.accept_routes_description",
+                    "Reach networks other tailnet devices share (for example a NAS at home). Works for this stick and for devices connected through it.",
+                  )}
+                </p>
+              </div>
+              <Switch
+                checked={status?.accept_routes ?? false}
+                onCheckedChange={() => setAcceptRoutes(!(status?.accept_routes ?? false))}
+                disabled={isTogglingRoutes}
+                aria-label={t("tailscale.accept_routes_label", "Accept subnet routes")}
+              />
+            </div>
+
+            {/* vosclean: use another device as exit node */}
+            <Separator />
+            <div className="flex flex-col gap-2 @md/card:flex-row @md/card:items-center @md/card:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-muted-foreground">
+                  {t("tailscale.use_exit_node_label", "Use exit node")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {exitNodeOptions.length === 0 && !status?.exit_node_in_use
+                    ? t(
+                        "tailscale.use_exit_node_none",
+                        "No device in your tailnet offers an exit node yet. Enable \"Run as exit node\" on one and approve it in the admin console.",
+                      )
+                    : t(
+                        "tailscale.use_exit_node_description",
+                        "Sends internet traffic from the stick and from devices connected through it out via another device in your tailnet. Speed is limited by the stick's CPU (WireGuard in software).",
+                      )}
+                </p>
+              </div>
+              <Select
+                value={status?.exit_node_in_use || "none"}
+                onValueChange={(v) => setUseExitNode(v === "none" ? "" : v)}
+                disabled={isTogglingRoutes || (exitNodeOptions.length === 0 && !status?.exit_node_in_use)}
+              >
+                <SelectTrigger className="w-full @md/card:w-48" aria-label={t("tailscale.use_exit_node_label", "Use exit node")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("tailscale.use_exit_node_off", "None")}</SelectItem>
+                  {exitNodeOptions.map((p) => (
+                    <SelectItem key={p.ip} value={p.ip}>
+                      {p.name}
+                      {p.online ? "" : ` (${t("tailscale.peer_offline", "offline")})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Health warnings */}

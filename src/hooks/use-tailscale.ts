@@ -49,6 +49,8 @@ export interface TailscalePeer {
   last_seen: string;
   relay: string;
   exit_node: boolean;
+  exit_node_option?: boolean;
+  routes?: string[];
 }
 
 export interface TailscaleStatus {
@@ -65,6 +67,8 @@ export interface TailscaleStatus {
   install_hint?: string;
   install_variant?: "official" | "tiny" | "opkg";
   exit_node_advertised?: boolean;
+  accept_routes?: boolean;
+  exit_node_in_use?: string;
   error_detail?: string;
   other_vpn_installed?: boolean;
   other_vpn_name?: string;
@@ -77,6 +81,7 @@ export interface UseTailscaleReturn {
   isDisconnecting: boolean;
   isTogglingService: boolean;
   isTogglingExitNode: boolean;
+  isTogglingRoutes: boolean;
   isUninstalling: boolean;
   installResult: InstallResult;
   error: string | null;
@@ -87,6 +92,8 @@ export interface UseTailscaleReturn {
   stopService: () => Promise<boolean>;
   setBootEnabled: (enabled: boolean) => Promise<boolean>;
   setExitNodeAdvertised: (enabled: boolean) => Promise<boolean>;
+  setAcceptRoutes: (enabled: boolean) => Promise<boolean>;
+  setUseExitNode: (ip: string) => Promise<boolean>;
   uninstall: () => Promise<boolean>;
   runInstall: (variant: "official" | "tiny") => Promise<void>;
   refresh: () => void;
@@ -100,6 +107,7 @@ export function useTailscale(): UseTailscaleReturn {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isTogglingService, setIsTogglingService] = useState(false);
   const [isTogglingExitNode, setIsTogglingExitNode] = useState(false);
+  const [isTogglingRoutes, setIsTogglingRoutes] = useState(false);
   const [isUninstalling, setIsUninstalling] = useState(false);
   const [installResult, setInstallResult] = useState<InstallResult>({
     success: true,
@@ -370,6 +378,43 @@ export function useTailscale(): UseTailscaleReturn {
     [postAction, query, t],
   );
 
+  // vosclean: accept subnet routes / use another node as exit node
+  const routeAction = useCallback(
+    async (body: Record<string, unknown>, fallback: string): Promise<boolean> => {
+      setIsTogglingRoutes(true);
+      setError(null);
+      try {
+        const json = await postAction(body);
+        if (!mountedRef.current) return false;
+        if (!json.success) {
+          setError(resolveErrorMessage(t, json.error, json.detail, fallback));
+          return false;
+        }
+        await query.refetch();
+        return true;
+      } catch (err) {
+        if (!mountedRef.current) return false;
+        setError(err instanceof Error ? err.message : fallback);
+        return false;
+      } finally {
+        if (mountedRef.current) setIsTogglingRoutes(false);
+      }
+    },
+    [postAction, query, t],
+  );
+
+  const setAcceptRoutes = useCallback(
+    (enabled: boolean) =>
+      routeAction({ action: "set_accept_routes", enabled }, "Failed to update subnet routes"),
+    [routeAction],
+  );
+
+  const setUseExitNode = useCallback(
+    (ip: string) =>
+      routeAction({ action: "set_use_exit_node", node: ip }, "Failed to set exit node"),
+    [routeAction],
+  );
+
   // ---------------------------------------------------------------------------
   // Install via opkg
   // ---------------------------------------------------------------------------
@@ -446,6 +491,7 @@ export function useTailscale(): UseTailscaleReturn {
     isDisconnecting,
     isTogglingService,
     isTogglingExitNode,
+    isTogglingRoutes,
     isUninstalling,
     installResult,
     error: errorMessage,
@@ -456,6 +502,8 @@ export function useTailscale(): UseTailscaleReturn {
     stopService,
     setBootEnabled,
     setExitNodeAdvertised,
+    setAcceptRoutes,
+    setUseExitNode,
     uninstall,
     runInstall,
     refresh: () => {

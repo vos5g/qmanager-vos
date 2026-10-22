@@ -151,6 +151,7 @@
     "placeholder_tertiary_dns": "e.g. 8.8.4.4",
     "label_ipv4_section": "IPv4 DNS Servers",
     "label_ipv6_section": "IPv6 DNS Servers",
+    "ipv6_note": "Saved but not used on this modem: devices resolve through the stick, which asks the servers above over IPv4. If your plan adds IPv6, devices may also be given the operator's IPv6 DNS, which this setting can't redirect.",
     "label_primary_dns6": "Primary IPv6 DNS",
     "placeholder_primary_dns6": "e.g. 2606:4700:4700::1111",
     "label_secondary_dns6": "Secondary IPv6 DNS",

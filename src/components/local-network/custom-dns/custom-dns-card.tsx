@@ -290,9 +290,14 @@ const CustomDNSCard = () => {
 
                     {/* IPv6 servers */}
                     <div className="grid gap-3">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {t("dns.label_ipv6_section")}
-                      </p>
+                      <div className="grid gap-1">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {t("dns.label_ipv6_section")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("dns.ipv6_note")}
+                        </p>
+                      </div>
                       <div className="grid @md/card:grid-cols-2 grid-cols-1 grid-flow-row gap-4">
                         <Field>
                           <FieldLabel htmlFor="primary-dns6">

@@ -144,6 +144,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/system/known_sims.sh", RequireAuth(s.HandleKnownSims))
 	mux.HandleFunc("/cgi-bin/quecmanager/cellular/fplmn.sh", RequireAuth(s.HandleFPLMN))
 	mux.HandleFunc("/cgi-bin/quecmanager/monitoring/bandwidth.sh", RequireAuth(s.HandleBandwidthSettings))
+	mux.HandleFunc("/cgi-bin/quecmanager/monitoring/bandwidth_ws", RequireAuth(s.HandleBandwidthWS))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/speedtest.sh", RequireAuth(s.HandleSpeedtestStart))
 	mux.HandleFunc("/cgi-bin/quecmanager/at_cmd/cell_scan_start.sh", RequireAuth(s.HandleCellScanStart))
 	mux.HandleFunc("/cgi-bin/quecmanager/at_cmd/neighbour_scan_start.sh", RequireAuth(s.HandleCellScanStart))

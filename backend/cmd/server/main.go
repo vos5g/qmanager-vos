@@ -170,7 +170,7 @@ func main() {
 
 	httpServer := &http.Server{
 		Addr:    ":" + port,
-		Handler: mux,
+		Handler: auditHandler(mux),
 	}
 
 	// Live bandwidth WebSocket server (Go-native, replaces websocat bridge).
@@ -188,7 +188,7 @@ func main() {
 			log.Printf("[TLS] HTTPS Enabled on port %s (cert: %s)", tlsPort, certPath)
 			tlsServer = &http.Server{
 				Addr:    ":" + tlsPort,
-				Handler: mux,
+				Handler: auditHandler(mux),
 			}
 			go func() {
 				if err := serveWithPortRetry(tlsServer, certPath, keyPath); err != nil && err != http.ErrServerClosed {
@@ -232,4 +232,19 @@ func main() {
 	}
 
 	log.Println("[System] QManager Go Core Daemon stopped cleanly.")
+}
+
+// auditHandler logs every state-changing request (method, path, client) to
+// /data/vosclean/log/qm-requests.log, so actions such as a reboot can later be
+// traced back to the UI. Bodies are not logged (they may hold passwords).
+func auditHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
+			if f, err := os.OpenFile("/data/vosclean/log/qm-requests.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); err == nil {
+				fmt.Fprintf(f, "%s %s %s from %s\n", time.Now().UTC().Format("2006-01-02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr)
+				f.Close()
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }

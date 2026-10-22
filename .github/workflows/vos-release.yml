@@ -2,7 +2,8 @@ name: VOS release (ARMv7 binaries)
 
 # Builds the QManager binary for the Tri Cascade VOS 5G / SG500M2-X (SDX55,
 # ARMv7) and a "Tailscale Tiny" binary, and publishes them with checksums.
-#   - push a tag like  vos-v1.0.0   -> GitHub release with the binaries
+#   - push a tag like  vos-v1.0.0, or publish a release with such a tag in the
+#     web UI                      -> binaries attached to that GitHub release
 #   - run by hand (Actions tab)     -> build only, binaries kept as artifacts
 on:
   push:
@@ -95,5 +96,10 @@ jobs:
 
           Check downloads against SHA256SUMS.txt. QManager is MIT with Commons Clause (not for sale).
           NOTES
-          gh release create "$TAG" dist/qmanager-core-armv7 dist/tailscaled-tiny-armv7 dist/SHA256SUMS.txt \
-            --title "$TAG" --notes-file notes.md
+          FILES="dist/qmanager-core-armv7 dist/tailscaled-tiny-armv7 dist/SHA256SUMS.txt"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # release drafted/published in the web UI: just attach the binaries
+            gh release upload "$TAG" $FILES --clobber
+          else
+            gh release create "$TAG" $FILES --title "$TAG" --notes-file notes.md
+          fi

@@ -1,3 +1,5 @@
+> **VOS fork:** this copy of QManager-GO is adapted to the Tri Cascade VOS 5G / SG500M2-X (Compal RXM-G1, SDX55). See **[VOS.md](VOS.md)** for what changed, how to build it, and the companion repo [vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55). The rest of this README is upstream's.
+
 # QManager — Universal Go Edition 🚀
 
 <div align="center">

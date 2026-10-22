@@ -81,6 +81,10 @@ const data = {
           url: "/system-settings/bandwidth-monitor",
         },
         { t_key: "logs", url: "/system-settings/logs" },
+        {
+          t_key: "health_check",
+          url: "/system-settings/system-health-check",
+        },
       ],
     },
     {

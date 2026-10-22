@@ -50,6 +50,7 @@
     "adaptive_polling": "Adaptive Polling",
     "bandwidth_monitor": "Bandwidth Monitor",
     "logs": "Logs",
+    "health_check": "Health Check",
     "software_update": "Software Update",
     "at_terminal": "AT Terminal",
     "luci": "LuCI",

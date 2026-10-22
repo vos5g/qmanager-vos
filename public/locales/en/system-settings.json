@@ -591,5 +591,88 @@
     "clear_dialog_clearing": "Clearing…",
     "toast_cleared": "Known SIMs cleared",
     "toast_clear_failed": "Failed to clear known SIMs"
+  },
+  "health_check": {
+    "page_title": "System Health Check",
+    "page_description": "Run a set of checks on the modem, the stick's flash, the security hardening and the network, and build a support bundle you can share.",
+    "run_title": "Run a check",
+    "run_description": "About 34 read-only checks. Takes 10 to 30 seconds and changes nothing on the device.",
+    "running": "Checking…",
+    "never_run": "No check has been run since QManager started.",
+    "last_run": "Last run {{when}}, took {{seconds}} s.",
+    "button_run": "Run health check",
+    "button_rerun": "Run again",
+    "button_running": "Running…",
+    "button_download": "Download support bundle",
+    "button_clear": "Clear results",
+    "bundle_note": "The bundle holds logs, settings and command output. IMEI, ICCID, IMSI, phone number, public IP addresses and email addresses are replaced with placeholders, but look through it before sharing it publicly.",
+    "attention_title": "Needs attention",
+    "attention_description": "Checks that failed or found something worth a look. Expand one to see the raw output.",
+    "attention_wait": "Results appear here when the check finishes.",
+    "attention_none_yet": "Run a check to see what needs attention.",
+    "attention_all_good": "Nothing to fix. Every check passed or was skipped.",
+    "all_title": "All checks",
+    "all_description": "Every check, grouped by area. Expand a row to see the command output behind it.",
+    "output_loading": "Loading output…",
+    "output_failed": "Couldn't load the output for this check.",
+    "output_truncated": "Showing the last 4 KB of output.",
+    "output_empty": "(no output)",
+    "status": {
+      "pass": "Passed",
+      "warn": "Warning",
+      "fail": "Failed",
+      "skip": "Skipped",
+      "pending": "Waiting",
+      "running": "Running"
+    },
+    "count": {
+      "pass": "{{count}} passed",
+      "warn": "{{count}} warnings",
+      "warn_one": "{{count}} warning",
+      "fail": "{{count}} failed",
+      "skip": "{{count}} skipped",
+      "pending": "{{count}} waiting",
+      "running": "{{count}} running"
+    },
+    "category": {
+      "binaries": {
+        "title": "Software",
+        "description": "QManager, the AT translator and the modem firmware."
+      },
+      "permissions": {
+        "title": "Storage and flash",
+        "description": "Free space, the read-only system partition and NAND wear."
+      },
+      "at_transport": {
+        "title": "Modem",
+        "description": "Identity, SIM, registration, signal and baseband crash handling."
+      },
+      "sms": {
+        "title": "SMS",
+        "description": "Message storage and the sending path."
+      },
+      "sudoers": {
+        "title": "Security",
+        "description": "SSH, the cellular-side firewall, vendor services and the QManager password."
+      },
+      "services": {
+        "title": "Services and resources",
+        "description": "vosclean, memory, temperature and Tailscale."
+      },
+      "network": {
+        "title": "Network",
+        "description": "Mobile data, internet reachability, DNS and the hardware fast path."
+      },
+      "configuration": {
+        "title": "Boot and system",
+        "description": "Boot hook, SSH host keys, clock and unexpected resets."
+      }
+    },
+    "toast": {
+      "run_failed": "Couldn't start the health check",
+      "cleared": "Results cleared",
+      "clear_failed": "Couldn't clear the results",
+      "download_failed": "Couldn't download the support bundle"
+    }
   }
 }

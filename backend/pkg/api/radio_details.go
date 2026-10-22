@@ -67,15 +67,15 @@ func (s *Server) HandleRadioDetails(w http.ResponseWriter, r *http.Request) {
 						wanIpv4 = ipCandidate
 					}
 				}
-				if len(parts) >= 7 {
-					dnsField := strings.TrimSpace(parts[6])
+				if len(parts) >= 6 {
+					dnsField := strings.Trim(strings.TrimSpace(parts[5]), `"`)
 					dnsParts := strings.Fields(dnsField)
 					if len(dnsParts) > 0 && primaryDns == "" {
 						primaryDns = dnsParts[0]
 					}
 				}
-				if len(parts) >= 8 {
-					dnsSecField := strings.TrimSpace(parts[7])
+				if len(parts) >= 7 {
+					dnsSecField := strings.Trim(strings.TrimSpace(parts[6]), `"`)
 					dnsSecParts := strings.Fields(dnsSecField)
 					if len(dnsSecParts) > 0 && secondaryDns == "" {
 						secondaryDns = dnsSecParts[0]

@@ -240,7 +240,11 @@ func main() {
 func auditHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead && r.Method != http.MethodOptions {
-			if f, err := os.OpenFile("/data/vosclean/log/qm-requests.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); err == nil {
+			const auditLog = "/data/vosclean/log/qm-requests.log"
+			if st, err := os.Stat(auditLog); err == nil && st.Size() > 256*1024 {
+				_ = os.Rename(auditLog, auditLog+".1") // keep two generations, at most ~512 KB on flash
+			}
+			if f, err := os.OpenFile(auditLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600); err == nil {
 				fmt.Fprintf(f, "%s %s %s from %s\n", time.Now().UTC().Format("2006-01-02 15:04:05"), r.Method, r.URL.Path, r.RemoteAddr)
 				f.Close()
 			}

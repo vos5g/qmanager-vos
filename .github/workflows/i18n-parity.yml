@@ -13,18 +13,8 @@
 name: i18n parity
 
 on:
-  pull_request:
-    # Any locale change (any language) is worth checking for parity/placeholder drift.
-    paths:
-      - "public/locales/**"
-  push:
-    # English is the source of truth — a change to en/** can orphan the other
-    # languages (new/removed keys), so re-check drift on the trunk branches.
-    branches:
-      - main
-      - development
-    paths:
-      - "public/locales/en/**"
+  # vos fork: new keys are added in English only; run manually
+  workflow_dispatch:
 
 jobs:
   check:

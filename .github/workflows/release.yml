@@ -1,9 +1,7 @@
 name: Release & Artifact Builder
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # vos fork: upstream's tarball release is replaced by vos-release.yml
   workflow_dispatch:
 
 jobs:

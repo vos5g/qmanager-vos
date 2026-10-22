@@ -1,12 +1,8 @@
 name: CodeQL Security Analysis
 
 on:
-  push:
-    branches: [ dev-go, main, development, feature/go-rewrite ]
-  pull_request:
-    branches: [ dev-go, main, development ]
-  schedule:
-    - cron: '30 2 * * 1' # Every Monday at 02:30 UTC
+  # vos fork: CodeQL needs GitHub Advanced Security on private repos; run manually
+  workflow_dispatch:
 
 jobs:
   analyze:

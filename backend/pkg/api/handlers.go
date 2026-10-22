@@ -96,6 +96,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// System Health Check & Language Packs Routes — Auth Required
 	mux.HandleFunc("/cgi-bin/quecmanager/system/health-check/status.sh", RequireAuth(s.HandleHealthCheckStatus))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/health-check/run.sh", RequireAuth(s.HandleHealthCheckRun))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/health-check/clear.sh", RequireAuth(s.HandleHealthCheckClear))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/health-check/download.sh", RequireAuth(s.HandleHealthCheckDownload))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/language-packs/list.sh", RequireAuth(s.HandleLanguagePacksList))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/language-packs/install.sh", RequireAuth(s.HandleLanguagePacksInstall))
 	// Device & System Metadata Routes — Auth Required

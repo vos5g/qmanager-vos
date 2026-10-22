@@ -674,5 +674,34 @@
       "clear_failed": "Couldn't clear the results",
       "download_failed": "Couldn't download the support bundle"
     }
+  },
+  "web_console": {
+    "page_title": "Web Console",
+    "page_description": "A root shell on the modem, in your browser. Handy when SSH isn't.",
+    "settings_title": "Access",
+    "settings_description": "Off unless you turn it on. Only logged-in sessions can open it, logging out closes it, and it closes after 30 minutes without typing. Every open and close is logged.",
+    "toggle_label": "Allow the web console",
+    "toggle_hint": "Anyone with the QManager password gets full root access while this is on.",
+    "terminal_title": "Shell",
+    "terminal_description": "Root shell (BusyBox sh). Commands run directly on the modem, so be careful: there is no undo. Type exit or press Ctrl+D to end the session.",
+    "button_reconnect": "Start a new session",
+    "state": {
+      "connected": "Connected",
+      "connecting": "Connecting…",
+      "ended": "Session ended",
+      "disconnected": "Disconnected"
+    },
+    "failure": {
+      "ended": "The shell exited.",
+      "off": "The web console was turned off.",
+      "busy": "Two consoles are already open. Close one and try again.",
+      "timeout": "The session ended: it was idle for 30 minutes, or you were logged out.",
+      "refused": "The modem refused the connection.",
+      "dropped": "The connection to the modem was lost.",
+      "unreachable": "Couldn't reach the console on the modem."
+    },
+    "toast_on": "Web console turned on",
+    "toast_off": "Web console turned off",
+    "toast_failed": "Couldn't change the web console setting"
   }
 }

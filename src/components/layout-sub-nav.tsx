@@ -34,6 +34,7 @@ import {
   Terminal,
   type LucideIcon,
   Stethoscope,
+  SquareTerminal,
 } from "lucide-react";
 
 export type SectionType = "cellular" | "monitoring" | "local-network" | "system-settings";
@@ -81,6 +82,7 @@ const SECTION_NAV_DATA: Record<SectionType, SubNavItem[]> = {
     { title: "Bandwidth Monitor", href: "/system-settings/bandwidth-monitor", icon: BarChart3 },
     { title: "System Logs", href: "/system-settings/logs", icon: FileText },
     { title: "Health Check", href: "/system-settings/system-health-check", icon: Stethoscope },
+    { title: "Web Console", href: "/system-settings/web-console", icon: SquareTerminal },
     { title: "Software Update", href: "/system-settings/software-update", icon: Download },
     { title: "AT Terminal", href: "/system-settings/at-terminal", icon: Terminal },
   ],

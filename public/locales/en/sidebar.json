@@ -51,6 +51,7 @@
     "bandwidth_monitor": "Bandwidth Monitor",
     "logs": "Logs",
     "health_check": "Health Check",
+    "web_console": "Web Console",
     "software_update": "Software Update",
     "at_terminal": "AT Terminal",
     "luci": "LuCI",

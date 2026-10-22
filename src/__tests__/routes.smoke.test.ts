@@ -57,6 +57,7 @@ describe("App Router Smoke Tests", () => {
       import("@/app/system-settings/at-terminal/page"),
       import("@/app/system-settings/bandwidth-monitor/page"),
       import("@/app/system-settings/system-health-check/page"),
+      import("@/app/system-settings/web-console/page"),
       import("@/app/system-settings/config-backup/page"),
       import("@/app/system-settings/connection-quality/page"),
       import("@/app/system-settings/languages/page"),

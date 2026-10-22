@@ -85,6 +85,7 @@ const data = {
           t_key: "health_check",
           url: "/system-settings/system-health-check",
         },
+        { t_key: "web_console", url: "/system-settings/web-console" },
       ],
     },
     {

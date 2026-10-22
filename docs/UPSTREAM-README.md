@@ -1,9 +1,9 @@
-> **VOS fork:** this copy of QManager-GO is adapted to the Tri Cascade VOS 5G / SG500M2-X (Compal RXM-G1, SDX55). See **[VOS.md](VOS.md)** for what changed, how to build it, and the companion repo [vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55). The rest of this README is upstream's.
+> This is the README of the upstream project ([evairo176/qmanager](https://github.com/evairo176/qmanager), QManager-GO for Quectel modems) at the commit this fork started from, kept for reference. Its install steps are **for Quectel modems** and do not apply to the VOS 5G; see the main [README](../README.md).
 
 # QManager — Universal Go Edition 🚀
 
 <div align="center">
-  <img src="public/qmanager-logo.svg" alt="QManager Logo" width="120" />
+  <img src="../public/qmanager-logo.svg" alt="QManager Logo" width="120" />
   <h3>Universal, High-Performance Go-Powered GUI & Core for Cellular Modem Management</h3>
   <p>Visualize, configure, and optimize Quectel & Universal cellular modems with an ultra-lightweight Go backend and React 19 UI</p>
 
@@ -19,14 +19,14 @@
 ---
 
 <div align="center">
-  <img src="docs/screenshots/dashboard.png" alt="QManager Dashboard" width="900" />
+  <img src="https://raw.githubusercontent.com/evairo176/qmanager/2cc6795e418e0bfe335bde188d9fa61335f2da2f/docs/screenshots/dashboard.png" alt="QManager Dashboard" width="900" />
 </div>
 
 <details>
 <summary><b>Lihat semua halaman (Cellular, SMS, Band Locking, Network, Monitoring, Settings)</b></summary>
 <br/>
 <div align="center">
-  <img src="docs/screenshots/all-pages.png" alt="Semua halaman QManager" width="900" />
+  <img src="https://raw.githubusercontent.com/evairo176/qmanager/2cc6795e418e0bfe335bde188d9fa61335f2da2f/docs/screenshots/all-pages.png" alt="Semua halaman QManager" width="900" />
 </div>
 </details>
 

@@ -18,7 +18,7 @@ installer live in **[thalatamsainath/vos5g-sdx55](https://github.com/thalatamsai
 | Custom DNS | Applied for real (dnsmasq upstream DNAT via `vosclean dns`) |
 | Tailscale | Real install (Official download or Tiny build), login, routes, exit nodes |
 
-`git log 2cc6795e..` lists every change with an explanation.
+`git log 2cc6795e..` lists every change with an explanation. The main [README](README.md) covers features, install and building.
 
 ## Building
 

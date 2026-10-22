@@ -132,8 +132,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// System Management & Update Routes — Auth Required
 	mux.HandleFunc("/cgi-bin/quecmanager/system/ssh_password.sh", RequireAuth(s.HandleSSHPassword))
-	mux.HandleFunc("/cgi-bin/quecmanager/system/update.sh", RequireAuth(s.HandleSoftwareUpdate))
-	mux.HandleFunc("/cgi-bin/quecmanager/system/update_upload.sh", RequireAuth(s.HandleSoftwareUpdateUpload))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/update.sh", RequireAuth(updatesDisabled))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/update_upload.sh", RequireAuth(updatesDisabled))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/pending_reboot.sh", RequireAuth(s.HandlePendingReboot))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/known_sims.sh", RequireAuth(s.HandleKnownSims))
 	mux.HandleFunc("/cgi-bin/quecmanager/cellular/fplmn.sh", RequireAuth(s.HandleFPLMN))
@@ -1036,4 +1036,15 @@ func cleanModelString(val string) string {
 		return strings.TrimSpace(parts[0])
 	}
 	return strings.TrimSpace(val)
+}
+
+// updatesDisabled: the vosclean build is patched for the Compal RXM-G1; an
+// upstream self-update would replace it with an unpatched binary.
+func updatesDisabled(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": false,
+		"error":   "updates_disabled",
+		"detail":  "Self-update is disabled in the vosclean build; updates are deployed by vosclean.",
+	})
 }

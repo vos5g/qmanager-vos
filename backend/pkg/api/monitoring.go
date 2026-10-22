@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 )
 
 const (
-	smsConfigPath     = "/etc/qmanager/sms_alerts.json"
-	emailConfigPath   = "/etc/qmanager/email_alerts.json"
-	discordConfigPath = "/etc/qmanager/discord_bot.json"
-	routingConfigPath = "/etc/qmanager/alert_routing.json"
+	smsConfigPath     = "/data/vosclean/qm/etc/sms_alerts.json"
+	emailConfigPath   = "/data/vosclean/qm/etc/email_alerts.json"
+	discordConfigPath = "/data/vosclean/qm/etc/discord_bot.json"
+	routingConfigPath = "/data/vosclean/qm/etc/alert_routing.json"
 	alertLogPath      = "/tmp/qmanager_alert_log.json"
 )
 
@@ -219,34 +218,8 @@ func writeJSONFile(path string, data map[string]any) {
 	if err != nil {
 		return
 	}
-	_ = os.MkdirAll("/etc/qmanager", 0755)
+	_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
 	_ = os.WriteFile(path, b, 0600)
-}
-
-// HandleVPNTailscale handles Tailscale status and login
-func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method == http.MethodGet {
-		out, err := exec.Command("tailscale", "status", "--json").Output()
-		if err == nil && len(out) > 0 {
-			_, _ = w.Write(out)
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":   true,
-			"installed": false,
-			"running":   false,
-		})
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, `{"error":"method_not_allowed"}`, http.StatusMethodNotAllowed)
-		return
-	}
-
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 }
 
 func qmBool(v any) bool {

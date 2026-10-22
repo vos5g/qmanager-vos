@@ -166,15 +166,15 @@ func (p *Poller) pollOnce() {
 				if len(parts) >= 3 && apn == "" {
 					apn = strings.Trim(strings.TrimSpace(parts[2]), `"`)
 				}
-				if len(parts) >= 7 {
-					dnsField := strings.TrimSpace(parts[6])
+				if len(parts) >= 6 {
+					dnsField := strings.Trim(strings.TrimSpace(parts[5]), `"`)
 					dnsParts := strings.Fields(dnsField)
 					if len(dnsParts) > 0 && primaryDns == "" {
 						primaryDns = dnsParts[0]
 					}
 				}
-				if len(parts) >= 8 {
-					dnsSecField := strings.TrimSpace(parts[7])
+				if len(parts) >= 7 {
+					dnsSecField := strings.Trim(strings.TrimSpace(parts[6]), `"`)
 					dnsSecParts := strings.Fields(dnsSecField)
 					if len(dnsSecParts) > 0 && secondaryDns == "" {
 						secondaryDns = dnsSecParts[0]
@@ -359,28 +359,8 @@ func (p *Poller) pollOnce() {
 		"errors":               []string{},
 		"signal_per_antenna":   signalPerAntenna,
 		"network":         buildNetworkMap(netType, carrier, serviceStatus, wanIp, apn, primaryDns, secondaryDns, simSlot, p),
-		"lte": map[string]interface{}{
-			"state":     lteState,
-			"band":      lteBand,
-			"earfcn":    earfcn,
-			"bandwidth": bandwidth,
-			"pci":       pci,
-			"cell_id":   cellId,
-			"tac":       tac,
-			"rsrp":      rsrp,
-			"rsrq":      rsrq,
-			"sinr":      sinr,
-			"rssi":      rssi,
-		},
-		"nr": map[string]interface{}{
-			"state": nrState,
-			"band":  nrBand,
-			"arfcn": nrArfcn,
-			"pci":   nrPci,
-			"rsrp":  nrRsrp,
-			"rsrq":  nrRsrq,
-			"sinr":  nrSinr,
-		},
+		"lte": lteCellMap(lteState, lteBand, earfcn, bandwidth, pci, cellId, tac, rsrp, rsrq, sinr, rssi, netType),
+		"nr": nrCellMap(nrState, nrBand, nrArfcn, nrPci, nrRsrp, nrRsrq, nrSinr, cellId, tac, netType),
 		"device": map[string]interface{}{
 			"poller_tier":              "active",
 			"temperature":              temp,
@@ -399,19 +379,14 @@ func (p *Poller) pollOnce() {
 			"phone_number":             phoneNumber,
 			"build_date":               buildDate,
 			"qmanager_version":         readQManagerVersion(),
-			"lte_category":             "Cat-20",
+			"lte_category":             "",
 			"mimo":                     "4x4",
-			"supported_lte_bands":      "1:3:5:7:8:20:28:38:40:41:42:43",
-			"supported_nsa_nr5g_bands": "1:3:5:7:8:20:28:38:40:41:77:78:79",
-			"supported_sa_nr5g_bands":  "1:3:5:7:8:20:28:38:40:41:77:78:79",
-			"supported_nrdc_nr5g_bands": "41:77:78:79",
+			"supported_lte_bands":      p.capBands("lte_band"),
+			"supported_nsa_nr5g_bands": p.capBands("nsa_nr5g_band"),
+			"supported_sa_nr5g_bands":  p.capBands("nr5g_band"),
+			"supported_nrdc_nr5g_bands": "",
 		},
-		"connectivity": map[string]interface{}{
-			"online":             true,
-			"latency_ms":         15,
-			"packet_loss_pct":    0,
-			"last_success_epoch": now,
-		},
+		"connectivity": lastPingConnectivity(now, wanIp),
 	}
 
 	data, err := json.MarshalIndent(status, "", "  ")
@@ -743,25 +718,32 @@ func parseQuectelQENG(resp string, netType, serviceStatus, carrier, lteBand *str
 
 			if rat == "NR5G-SA" {
 				*netType = "NR5G-SA"
-				if len(parts) >= 14 {
-					if val, err := strconv.Atoi(parts[7]); err == nil {
-						*nrArfcn = &val
+				// Quectel: "servingcell",<state>,"NR5G-SA",<duplex>,<MCC>,<MNC>,<cellID>,<PCID>,<TAC>,<ARFCN>,<band>,<NR_DL_bw>,<RSRP>,<RSRQ>,<SINR>,<scs>,<srxlev>
+				if len(parts) >= 15 {
+					if hexVal, err := strconv.ParseInt(strings.Trim(parts[6], `"`), 16, 64); err == nil && hexVal > 0 {
+						v := int(hexVal)
+						*cellId = &v
 					}
-					if val, err := strconv.Atoi(parts[8]); err == nil {
+					if val, err := strconv.Atoi(parts[7]); err == nil {
 						*nrPci = &val
 					}
-					if bandNum, err := strconv.Atoi(parts[9]); err == nil {
-						*nrBand = fmt.Sprintf("N%d", bandNum)
-					} else {
-						*nrBand = strings.Trim(parts[9], `"`)
+					if hexVal, err := strconv.ParseInt(strings.Trim(parts[8], `"`), 16, 64); err == nil && hexVal > 0 {
+						v := int(hexVal)
+						*tac = &v
 					}
-					if val, err := strconv.Atoi(parts[11]); err == nil {
-						*nrRsrp = &val
+					if val, err := strconv.Atoi(parts[9]); err == nil {
+						*nrArfcn = &val
+					}
+					if bandNum, err := strconv.Atoi(parts[10]); err == nil {
+						*nrBand = fmt.Sprintf("N%d", bandNum)
 					}
 					if val, err := strconv.Atoi(parts[12]); err == nil {
-						*nrRsrq = &val
+						*nrRsrp = &val
 					}
 					if val, err := strconv.Atoi(parts[13]); err == nil {
+						*nrRsrq = &val
+					}
+					if val, err := strconv.Atoi(parts[14]); err == nil {
 						*nrSinr = &val
 					}
 				}
@@ -770,36 +752,40 @@ func parseQuectelQENG(resp string, netType, serviceStatus, carrier, lteBand *str
 				// Format INLINE (firmware lain): +QENG: "servingcell","CONNECTED","LTE","FDD",
 				// <cell>,<tac>,<pci>,<earfcn>,<band>,<ul_bw>,<dl_bw>,<rsrp>,<rsrq>,<rssi>,<sinr>
 				// Index: [4]cell [5]tac [6]pci [7]earfcn [8]band [9]ul [10]dl [11]rsrp [12]rsrq [13]rssi [14]sinr
-				if len(parts) >= 15 {
-					if hexVal, err := strconv.ParseInt(strings.Trim(parts[4], `"`), 16, 64); err == nil && hexVal > 0 {
+				// Quectel: "servingcell",<state>,"LTE",<is_tdd>,<MCC>,<MNC>,<cellID>,<PCID>,<earfcn>,<band>,<UL_bw>,<DL_bw>,<TAC>,<RSRP>,<RSRQ>,<RSSI>,<SINR>,...
+				if len(parts) >= 17 {
+					if hexVal, err := strconv.ParseInt(strings.Trim(parts[6], `"`), 16, 64); err == nil && hexVal > 0 {
 						v := int(hexVal)
 						*cellId = &v
 					}
-					if val, err := strconv.Atoi(parts[6]); err == nil {
+					if val, err := strconv.Atoi(parts[7]); err == nil {
 						*pci = &val
 					}
-					if val, err := strconv.Atoi(parts[7]); err == nil {
+					if val, err := strconv.Atoi(parts[8]); err == nil {
 						*earfcn = &val
 					}
-					if bandNum, err := strconv.Atoi(parts[8]); err == nil {
+					if bandNum, err := strconv.Atoi(parts[9]); err == nil {
 						*lteBand = fmt.Sprintf("B%d", bandNum)
-					} else {
-						*lteBand = strings.Trim(parts[8], `"`)
 					}
-					if hexVal, err := strconv.ParseInt(strings.Trim(parts[5], `"`), 16, 64); err == nil && hexVal > 0 {
+					if bwCode, err := strconv.Atoi(parts[11]); err == nil {
+						if bw := map[int]int{0: 1, 1: 3, 2: 5, 3: 10, 4: 15, 5: 20}[bwCode]; bw > 0 {
+							*bandwidth = &bw
+						}
+					}
+					if hexVal, err := strconv.ParseInt(strings.Trim(parts[12], `"`), 16, 64); err == nil && hexVal > 0 {
 						v := int(hexVal)
 						*tac = &v
 					}
-					if val, err := strconv.Atoi(parts[11]); err == nil {
+					if val, err := strconv.Atoi(parts[13]); err == nil {
 						*rsrp = &val
 					}
-					if val, err := strconv.Atoi(parts[12]); err == nil {
+					if val, err := strconv.Atoi(parts[14]); err == nil {
 						*rsrq = &val
 					}
-					if val, err := strconv.Atoi(parts[13]); err == nil {
+					if val, err := strconv.Atoi(parts[15]); err == nil {
 						*rssi = &val
 					}
-					if val, err := strconv.Atoi(parts[14]); err == nil {
+					if val, err := strconv.Atoi(parts[16]); err == nil {
 						*sinr = &val
 					}
 				}
@@ -892,7 +878,7 @@ func parseQuectelQENG(resp string, netType, serviceStatus, carrier, lteBand *str
 // readLoadAvg returns the 1/5/15-minute load averages from /proc/loadavg as
 // a string like "2.33 2.38 2.45", or "" if unreadable.
 // qmanagerVersionFile is written by the installer; fallback keeps a sane default.
-const qmanagerVersionFile = "/etc/qmanager/VERSION"
+const qmanagerVersionFile = "/data/vosclean/qm/etc/VERSION"
 
 var qmanagerVersionFallback = "v1.5.6"
 
@@ -955,6 +941,11 @@ func (p *Poller) collectCarrierComponents() []map[string]any {
 		}
 		if v, e := strconv.Atoi(strings.TrimSpace(parts[2])); e == nil && tech == "LTE" {
 			cc["bandwidth_mhz"] = v / 5 // QCAINFO bandwidth = MHz*5
+		} else if e == nil && tech == "NR" {
+			nrBw := []int{5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 200, 400}
+			if v >= 0 && v < len(nrBw) {
+				cc["bandwidth_mhz"] = nrBw[v]
+			}
 		}
 
 		if tech == "LTE" {
@@ -1023,6 +1014,32 @@ func buildNetworkMap(netType, carrier, serviceStatus, wanIp, apn, primaryDns, se
 		m["ca_count"] = len(components) - 1
 	}
 	m["carrier_components"] = components
+	// vosclean: fields the cellular-information page reads
+	m["primary_dns_v4"] = primaryDns
+	m["secondary_dns_v4"] = secondaryDns
+	total, nrCount, lteCount := 0, 0, 0
+	var parts []string
+	for _, c := range components {
+		bw, _ := c["bandwidth_mhz"].(int)
+		total += bw
+		if c["technology"] == "NR" {
+			nrCount++
+		} else {
+			lteCount++
+		}
+		if bw > 0 {
+			parts = append(parts, fmt.Sprintf("%v %d MHz", c["band"], bw))
+		}
+	}
+	if total > 0 {
+		m["total_bandwidth_mhz"] = total
+		m["bandwidth_details"] = strings.Join(parts, " + ")
+	}
+	m["ca_active"] = lteCount >= 2 || (lteCount >= 1 && nrCount >= 1 && netType != "5G-SA")
+	m["nr_ca_active"] = nrCount >= 2
+	if nrCount > 0 {
+		m["nr_ca_count"] = nrCount - 1
+	}
 	return m
 }
 
@@ -1242,4 +1259,94 @@ func isDigits(s string) bool {
 		}
 	}
 	return true
+}
+
+// ---- vosclean additions ----
+
+var capCache = map[string]string{}
+
+// capBands reads the modem's real band capability once (via qcmd).
+func (p *Poller) capBands(key string) string {
+	if v, ok := capCache[key]; ok {
+		return v
+	}
+	resp, err := p.atClient.Exec(`AT+QNWPREFCFG="ue_capability_band"`)
+	if err != nil || strings.Contains(resp, "ERROR") {
+		return ""
+	}
+	for _, line := range strings.Split(resp, "\n") {
+		line = strings.TrimSpace(line)
+		for _, k := range []string{"lte_band", "nsa_nr5g_band", "nr5g_band"} {
+			if strings.HasPrefix(line, `+QNWPREFCFG: "`+k+`",`) {
+				capCache[k] = strings.TrimPrefix(line, `+QNWPREFCFG: "`+k+`",`)
+			}
+		}
+	}
+	return capCache[key]
+}
+
+// lastPingConnectivity reports the most recent watchdog ping instead of fixed values.
+func lastPingConnectivity(now int64, wanIp string) map[string]interface{} {
+	out := map[string]interface{}{
+		"online":             wanIp != "",
+		"latency_ms":         nil,
+		"packet_loss_pct":    nil,
+		"last_success_epoch": nil,
+	}
+	data, err := os.ReadFile("/tmp/qmanager_ping_history.json")
+	if err != nil {
+		return out
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	var lastOK int64
+	for i := len(lines) - 1; i >= 0; i-- {
+		var e struct {
+			Ts   int64    `json:"ts"`
+			Lat  *float64 `json:"lat"`
+			Loss int      `json:"loss"`
+		}
+		if json.Unmarshal([]byte(lines[i]), &e) != nil {
+			continue
+		}
+		if i == len(lines)-1 {
+			out["online"] = e.Loss < 100
+			out["packet_loss_pct"] = e.Loss
+			if e.Lat != nil {
+				out["latency_ms"] = int(*e.Lat + 0.5)
+			}
+		}
+		if e.Lat != nil && lastOK == 0 {
+			lastOK = e.Ts
+		}
+		if lastOK != 0 {
+			break
+		}
+	}
+	if lastOK != 0 {
+		out["last_success_epoch"] = lastOK
+	}
+	return out
+}
+
+func lteCellMap(state, band string, earfcn, bandwidth, pci, cellId, tac, rsrp, rsrq, sinr, rssi *int, netType string) map[string]interface{} {
+	m := map[string]interface{}{
+		"state": state, "band": band, "earfcn": earfcn, "bandwidth": bandwidth, "pci": pci,
+		"cell_id": nil, "tac": nil, "rsrp": rsrp, "rsrq": rsrq, "sinr": sinr, "rssi": rssi,
+	}
+	if netType != "5G-SA" && cellId != nil {
+		m["cell_id"], m["tac"] = cellId, tac
+		m["enodeb_id"] = *cellId >> 8 // 28-bit ECI = 20-bit eNB + 8-bit sector
+		m["sector_id"] = *cellId & 0xff
+	}
+	return m
+}
+
+func nrCellMap(state, band string, arfcn, pci, rsrp, rsrq, sinr, cellId, tac *int, netType string) map[string]interface{} {
+	m := map[string]interface{}{
+		"state": state, "band": band, "arfcn": arfcn, "pci": pci, "rsrp": rsrp, "rsrq": rsrq, "sinr": sinr,
+	}
+	if netType == "5G-SA" && cellId != nil {
+		m["cell_id"], m["tac"] = cellId, tac
+	}
+	return m
 }

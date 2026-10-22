@@ -83,7 +83,7 @@ export function SIMSlotCard() {
           </Button>
         </CardTitle>
         <CardDescription>
-          Switch active physical SIM or eSIM slot directly on Quectel modem hardware.
+          Switch the active SIM slot on the modem (the VOS 5G board has one slot).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

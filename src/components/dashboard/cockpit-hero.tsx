@@ -37,7 +37,7 @@ export function CockpitHero({ data, isLoading }: CockpitHeroProps) {
   const latency = data?.connectivity?.latency_ms;
   const packetLoss = data?.connectivity?.packet_loss_pct ?? 0;
   const temp = data?.device?.temperature;
-  const model = data?.device?.model || "Quectel 5G";
+  const model = data?.device?.model || "SG500M2-X";
 
   const is5G = networkType.includes("5G") || networkType.includes("NR");
 

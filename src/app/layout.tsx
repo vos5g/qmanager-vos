@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "QManager",
   description:
-    "QManager is a modern web-based GUI for managing Quectel modems — from APN and band locking to advanced diagnostics and cellular device management.",
+    "QManager for the Tri Cascade VOS 5G / SG500M2-X (Snapdragon X55): signal, band and cell locking, APN, SMS, Tailscale and diagnostics.",
 };
 
 export default function RootLayout({

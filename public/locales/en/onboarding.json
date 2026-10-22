@@ -14,7 +14,7 @@
     "step_label_complete": "Complete",
     "aria_live_step_indicator": "Step {{step}} of {{total}}: {{label}}",
     "aria_progressbar_label": "Step {{step}} of {{total}}",
-    "footer_branding": "QManager — Quectel Modem Management",
+    "footer_branding": "QManager — VOS 5G / SG500M2-X",
     "label_required": "Required"
   },
   "welcome": {

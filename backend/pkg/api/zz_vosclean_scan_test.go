@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"os"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 

@@ -124,14 +124,14 @@ export function useBandwidthMonitor(): UseBandwidthMonitorReturn {
   const connect = useCallback(() => {
     if (!settings || !mountedRef.current) return;
 
-    const host =
-      typeof window !== "undefined" && window.location.hostname === "localhost"
-        ? "192.168.224.1"
-        : typeof window !== "undefined"
-          ? window.location.hostname
-          : "192.168.224.1";
+    // Same origin as the page (ws:// or wss://), behind the login cookie.
+    // The modem counts traffic in QCMAP because the hardware fast path
+    // bypasses Linux's interface counters.
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/cgi-bin/quecmanager/monitoring/bandwidth_ws`
+        : "";
 
-    const url = `ws://${host}:${settings.ws_port}`;
 
     try {
       const ws = new WebSocket(url);

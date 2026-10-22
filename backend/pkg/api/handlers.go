@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -822,6 +823,12 @@ func (s *Server) HandleDNS(w http.ResponseWriter, r *http.Request) {
 				"dns2v6":  dns2v6,
 				"enabled": enabled,
 			})
+			if err := applyCustomDNS(mode == "enabled", dns1, dns2, dns3); err != nil {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"success": false, "error": "dns_apply_failed", "detail": err.Error(),
+				})
+				return
+			}
 		}
 	}
 
@@ -1047,4 +1054,39 @@ func updatesDisabled(w http.ResponseWriter, r *http.Request) {
 		"error":   "updates_disabled",
 		"detail":  "Self-update is disabled in the vosclean build; updates are deployed by vosclean.",
 	})
+}
+
+// applyCustomDNS hands the chosen IPv4 resolvers to vosclean, which redirects
+// the modem's upstream DNS queries (dnsmasq, used by every DHCP client) to them
+// with iptables nat OUTPUT DNAT. Only literal IPv4 addresses are accepted so
+// nothing user-supplied reaches the shell config unvalidated.
+func applyCustomDNS(enabled bool, servers ...string) error {
+	var list []string
+	for _, sv := range servers {
+		sv = strings.TrimSpace(sv)
+		if sv == "" {
+			continue
+		}
+		ip := net.ParseIP(sv)
+		if ip == nil || ip.To4() == nil {
+			return fmt.Errorf("not an IPv4 address: %q", sv)
+		}
+		list = append(list, ip.To4().String())
+	}
+	if enabled && len(list) == 0 {
+		return fmt.Errorf("no DNS servers given")
+	}
+	flag := "no"
+	if enabled {
+		flag = "yes"
+	}
+	conf := fmt.Sprintf("# written by QManager - applied by: vosclean dns\nDNS_ENABLE=%s\nDNS_SERVERS=\"%s\"\n", flag, strings.Join(list, " "))
+	if err := os.WriteFile("/data/vosclean/etc/dns.conf", []byte(conf), 0644); err != nil {
+		return err
+	}
+	out, err := exec.Command("/data/vosclean/bin/vosclean", "dns").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("vosclean dns: %v: %s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }

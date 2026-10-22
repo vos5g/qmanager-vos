@@ -177,7 +177,12 @@
     "error_at_least_one": "Enter at least a TTL or Hop Limit value",
     "toast_success_enabled": "Applied — TTL: {{ttl}}, Hop Limit: {{hl}}",
     "toast_success_disabled": "Custom TTL/Hop Limit disabled",
-    "toast_error_apply": "Failed to apply TTL/Hop Limit settings"
+    "toast_error_apply": "Failed to apply TTL/Hop Limit settings",
+    "unsupported_description": "Not available on this modem. Set TTL on your router instead.",
+    "unsupported_why": "The stick's hardware fast path (IPA) forwards your traffic without passing it through Linux, so a TTL rule here would only change the first few packets of each connection (22 of about 14,000 in a test upload). Mixed TTLs are easier to spot than none, so QManager doesn't apply one.",
+    "unsupported_router_title": "Set it on the router in front of the stick",
+    "unsupported_router_body": "Set 65 on the router's interface towards the stick. Packets the stick routes itself lose one, so the mobile network sees 64, like traffic from a phone. Whether the hardware fast path also lowers it can't be checked from the stick, so some packets may arrive with 65, which is still not the 63 a tethering check looks for.",
+    "unsupported_router_note": "Replace usb0 with the name of the router's interface to the stick."
   },
   "mtu": {
     "card_title": "Maximum Transmission Unit (MTU) Configuration",

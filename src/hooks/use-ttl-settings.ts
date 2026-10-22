@@ -27,6 +27,8 @@ export interface TtlSettingsData {
   hl: number;
   /** Whether TTL/HL is set to autostart on boot */
   autostart: boolean;
+  /** False when the modem can't rewrite TTL (VOS 5G: hardware fast path) */
+  supported: boolean;
 }
 
 export interface UseTtlSettingsReturn {
@@ -54,6 +56,7 @@ export function useTtlSettings(): UseTtlSettingsReturn {
     ttl: number;
     hl: number;
     autostart: boolean;
+    supported?: boolean;
     error?: string;
     detail?: string;
   }>({
@@ -73,6 +76,7 @@ export function useTtlSettings(): UseTtlSettingsReturn {
         ttl: query.data.ttl,
         hl: query.data.hl,
         autostart: query.data.autostart,
+        supported: query.data.supported !== false,
       }
     : null;
 

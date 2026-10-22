@@ -97,6 +97,10 @@ const TTLSettingsCard = () => {
     );
   }
 
+  if (data && !data.supported) {
+    return <TTLUnsupportedCard />;
+  }
+
   // Key-based remount — form reinitializes when data changes
   const formKey = data
     ? `${data.isEnabled}-${data.ttl}-${data.hl}`
@@ -114,6 +118,44 @@ const TTLSettingsCard = () => {
     />
   );
 };
+
+// VOS 5G: the IPA hardware fast path forwards traffic without the firewall, so
+// TTL has to be set on the router in front of the stick.
+function TTLUnsupportedCard() {
+  const { t } = useTranslation("local-network");
+  return (
+    <Card className="@container/card">
+      <CardHeader>
+        <CardTitle>{t("ttl.card_title")}</CardTitle>
+        <CardDescription>{t("ttl.unsupported_description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <Alert>
+          <InfoIcon className="size-4" />
+          <AlertDescription>{t("ttl.unsupported_why")}</AlertDescription>
+        </Alert>
+        <div className="grid gap-2">
+          <p className="text-sm font-medium">{t("ttl.unsupported_router_title")}</p>
+          <p className="text-sm text-muted-foreground">{t("ttl.unsupported_router_body")}</p>
+          <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+{`# OpenWrt / GL.iNet (fw4): /etc/nftables.d/10-ttl.nft
+chain mangle_postrouting_ttl65 {
+  type filter hook postrouting priority 300; policy accept;
+  oifname "usb0" ip ttl set 65
+  oifname "usb0" ip6 hoplimit set 65
+}
+# then: fw4 reload
+
+# older OpenWrt (iptables):
+iptables  -t mangle -A POSTROUTING -o usb0 -j TTL --ttl-set 65
+ip6tables -t mangle -A POSTROUTING -o usb0 -j HL --hl-set 65`}
+          </pre>
+          <p className="text-xs text-muted-foreground">{t("ttl.unsupported_router_note")}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function TTLForm({
   data,

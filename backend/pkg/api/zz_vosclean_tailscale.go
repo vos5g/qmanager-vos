@@ -174,6 +174,9 @@ func tsPeerOut(p tsPeerJSON) map[string]any {
 
 func tsStatus() map[string]any {
 	out := map[string]any{"success": true, "installed": false}
+	if !tsInstalled() && nbInstalled() { // one mesh VPN at a time: both use 100.64.0.0/10
+		out["other_vpn_installed"], out["other_vpn_name"] = true, "NetBird"
+	}
 	if !tsInstalled() {
 		hint := "Official: downloads Tailscale's static ARM build from pkgs.tailscale.com (about 47 MB on /data)."
 		if _, err := os.Stat(tsTinyUpload); err == nil {
@@ -495,6 +498,11 @@ func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
 
 	switch body.Action {
 	case "install":
+		if nbInstalled() && !tsInstalled() {
+			_ = enc.Encode(map[string]any{"success": false, "error": "other_vpn_installed",
+				"detail": "NetBird is installed. Both use the 100.64.0.0/10 range, so uninstall NetBird first."})
+			return
+		}
 		if body.Variant == "tiny" {
 			tsInstall.set("running", "Installing Tailscale Tiny...", "")
 			if err := tsInstallTiny(); err != nil {

@@ -83,7 +83,7 @@ const LteFreqLockingComponent = ({
   // source-reference change — identical semantics to the previous
   // [modemState?.lte_entries] effect.
   const lteEntries = modemState?.lte_entries;
-  const [prevLteEntries, setPrevLteEntries] = useState(lteEntries);
+  const [prevLteEntries, setPrevLteEntries] = useState<typeof lteEntries | null>(null); // null, so cached data still seeds the form on mount
   if (lteEntries !== prevLteEntries) {
     setPrevLteEntries(lteEntries);
     if (lteEntries && lteEntries.length > 0) {

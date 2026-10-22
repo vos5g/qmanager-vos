@@ -64,8 +64,8 @@ const MBNCard = ({
   // the sync lands in the same commit. The prev refs make this re-run only when a
   // source changes — identical semantics to the previous [profiles, autoSel]
   // effect.
-  const [prevAutoSel, setPrevAutoSel] = useState(autoSel);
-  const [prevProfiles, setPrevProfiles] = useState(profiles);
+  const [prevAutoSel, setPrevAutoSel] = useState<typeof autoSel | null>(null); // null, so cached data still seeds the form on mount
+  const [prevProfiles, setPrevProfiles] = useState<typeof profiles | null>(null); // null, so cached data still seeds the form on mount
   if (autoSel !== prevAutoSel || profiles !== prevProfiles) {
     setPrevAutoSel(autoSel);
     setPrevProfiles(profiles);

@@ -117,7 +117,7 @@ const NrFreqLockingComponent = ({
   // source-reference change — identical semantics to the previous
   // [modemState?.nr_entries] effect.
   const nrEntries = modemState?.nr_entries;
-  const [prevNrEntries, setPrevNrEntries] = useState(nrEntries);
+  const [prevNrEntries, setPrevNrEntries] = useState<typeof nrEntries | null>(null); // null, so cached data still seeds the form on mount
   if (nrEntries !== prevNrEntries) {
     setPrevNrEntries(nrEntries);
     if (nrEntries && nrEntries.length > 0) {

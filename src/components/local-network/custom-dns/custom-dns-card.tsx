@@ -63,7 +63,9 @@ const CustomDNSCard = () => {
   // deriving state from props — so the sync lands in the same commit rather
   // than a second render. prevData makes it re-run only when the source object
   // reference changes — identical semantics to the previous [data] effect.
-  const [prevData, setPrevData] = useState(data);
+  // Start from null, not `data`: when the query is already cached on mount,
+  // `data` is present on the first render and must still seed the form.
+  const [prevData, setPrevData] = useState<typeof data>(null);
   if (data && data !== prevData) {
     setPrevData(data);
     setIsEnabled(data.mode === "enabled");

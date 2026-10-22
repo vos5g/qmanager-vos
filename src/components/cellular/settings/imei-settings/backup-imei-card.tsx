@@ -71,8 +71,8 @@ const BackupIMEICard = ({
   // the sync lands in the same commit. The prev refs make this re-run only when a
   // source changes — identical semantics to the previous
   // [backupEnabled, backupImei] effect.
-  const [prevEnabled, setPrevEnabled] = useState(backupEnabled);
-  const [prevImei, setPrevImei] = useState(backupImei);
+  const [prevEnabled, setPrevEnabled] = useState<typeof backupEnabled | null>(null); // null, so cached data still seeds the form on mount
+  const [prevImei, setPrevImei] = useState<typeof backupImei | null>(null); // null, so cached data still seeds the form on mount
   if (backupEnabled !== prevEnabled || backupImei !== prevImei) {
     setPrevEnabled(backupEnabled);
     setPrevImei(backupImei);

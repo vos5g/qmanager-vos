@@ -119,7 +119,7 @@ const LanConfigCard = () => {
   const [prefix, setPrefix] = useState<number>(24);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const [prevData, setPrevData] = useState(data);
+  const [prevData, setPrevData] = useState<typeof data | null>(null); // null, so cached data still seeds the form on mount
   if (data && data !== prevData) {
     setPrevData(data);
     setIpInput(data.ipaddr);

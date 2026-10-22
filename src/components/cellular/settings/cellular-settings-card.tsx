@@ -50,7 +50,7 @@ const CellularSettingsCard = ({
   // useEffect, so the sync lands in the same commit. prevSettings keeps it to one
   // sync per source-reference change — identical semantics to the prior [settings]
   // effect.
-  const [prevSettings, setPrevSettings] = useState(settings);
+  const [prevSettings, setPrevSettings] = useState<typeof settings | null>(null); // null, so cached data still seeds the form on mount
   if (settings && settings !== prevSettings) {
     setPrevSettings(settings);
     setSimSlot(String(settings.sim_slot));

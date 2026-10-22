@@ -66,7 +66,7 @@ const IMEISettingsCard = ({
   // pattern (React docs: "You Might Not Need an Effect") instead of useEffect, so
   // the sync lands in the same commit. prevImei keeps it to one sync per source
   // change — identical semantics to the previous [currentImei] effect.
-  const [prevImei, setPrevImei] = useState(currentImei);
+  const [prevImei, setPrevImei] = useState<typeof currentImei | null>(null); // null, so cached data still seeds the form on mount
   if (currentImei !== null && currentImei !== prevImei) {
     setPrevImei(currentImei);
     setImei(currentImei);

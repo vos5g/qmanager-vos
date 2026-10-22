@@ -65,11 +65,60 @@ func (s *Server) HandleCellScanStatus(w http.ResponseWriter, r *http.Request) {
 		results = []QScanCellResult{}
 	}
 
+	// vosclean: the cell-scanner page (use-cell-scanner.ts / scan-result.tsx)
+	// needs {status, results:[CellScanResult]} - upstream sent neither.
+	status := "idle"
+	if scanning {
+		status = "running"
+	} else if fileExists(rawScanFile) {
+		status = "complete"
+	}
+	cells := make([]map[string]any, 0, len(results))
+	for _, c := range results {
+		cid, _ := strconv.ParseInt(c.CellID, 16, 64)
+		tac, _ := strconv.ParseInt(c.TAC, 16, 64)
+		mcc, _ := strconv.Atoi(c.MCC)
+		mnc, _ := strconv.Atoi(c.MNC)
+		cell := map[string]any{
+			"id":             fmt.Sprintf("%s-%d-%d", c.Tech, c.ARFCN, c.PCI),
+			"networkType":    c.Tech,
+			"earfcn":         c.ARFCN,
+			"pci":            c.PCI,
+			"band":           c.Band,
+			"bandwidth":      c.Bandwidth,
+			"cellID":         cid,
+			"tac":            tac,
+			"signalStrength": c.RSRP,
+			"mcc":            mcc,
+			"mnc":            mnc,
+			"provider":       plmnName(c.MCC, c.MNC),
+		}
+		if c.Tech == "NR5G" && c.SCS > 0 {
+			cell["scs"] = c.SCS
+		}
+		cells = append(cells, cell)
+	}
+
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":  true,
 		"scanning": scanning,
-		"results":  results,
+		"status":   status,
+		"results":  cells,
 	})
+}
+
+func plmnName(mcc, mnc string) string {
+	names := map[string]string{
+		"23410": "O2 UK", "23411": "O2 UK", "23415": "Vodafone UK", "23420": "Three UK",
+		"23430": "EE", "23433": "EE", "23434": "EE", "23458": "Manx Telecom",
+	}
+	if n, ok := names[mcc+mnc]; ok {
+		return n
+	}
+	if mcc == "" || mcc == "-" {
+		return "Unknown"
+	}
+	return mcc + "-" + mnc
 }
 
 // ParseQScanOutput parses raw AT+QSCAN response lines into structured cells with SCS support

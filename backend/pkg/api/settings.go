@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -209,46 +208,27 @@ func isDigits(s string) bool {
 	return true
 }
 
-type TTLSettingsRequest struct {
-	Enabled bool `json:"enabled"`
-	Value   int  `json:"value"`
-}
-
-// HandleTTLSettings handles GET and POST for network TTL override
+// HandleTTLSettings: on the VOS 5G stick TTL rewriting can't work. The IPA
+// hardware fast path forwards USB<->mobile traffic without Linux, so an
+// iptables TTL rule only sees the first few packets of each connection
+// (measured: 22 of ~14,000 packets in a 20 MB upload). Rewriting those few
+// would make the TTLs inconsistent, which is easier to spot than none, so the
+// endpoint reports "unsupported" and applies nothing. Set TTL on the router
+// in front of the stick instead (the UI explains how).
 func (s *Server) HandleTTLSettings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method == http.MethodGet {
+	if r.Method == http.MethodPost {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"ttl": map[string]interface{}{
-				"enabled": true,
-				"value":   64,
-			},
+			"success": false,
+			"error":   "ttl_unsupported",
+			"detail":  "TTL can't be set on this modem: the hardware fast path (IPA) bypasses the firewall. Set it on your router instead.",
 		})
 		return
 	}
-
-	if r.Method == http.MethodPost {
-		var req TTLSettingsRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "invalid_json"})
-			return
-		}
-
-		// Apply TTL using iptables wrapper
-		if _, err := exec.LookPath("iptables"); err == nil && req.Enabled {
-			val := req.Value
-			if val <= 0 {
-				val = 64
-			}
-			cmdStr := fmt.Sprintf("iptables -t mangle -A POSTROUTING -j TTL --ttl-set %d", val)
-			_ = exec.Command("sh", "-c", cmdStr).Run()
-		}
-
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
-		return
-	}
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true, "is_enabled": false, "ttl": 0, "hl": 0, "autostart": false,
+		"supported": false, "unsupported_reason": "ipa_offload",
+	})
 }
 
 // HandleNetworkPriority handles GET and POST for RAT acquisition order priority

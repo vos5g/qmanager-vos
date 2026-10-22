@@ -1,0 +1,99 @@
+name: VOS release (ARMv7 binaries)
+
+# Builds the QManager binary for the Tri Cascade VOS 5G / SG500M2-X (SDX55,
+# ARMv7) and a "Tailscale Tiny" binary, and publishes them with checksums.
+#   - push a tag like  vos-v1.0.0   -> GitHub release with the binaries
+#   - run by hand (Actions tab)     -> build only, binaries kept as artifacts
+on:
+  push:
+    tags: ['vos-v*']
+  workflow_dispatch:
+    inputs:
+      tailscale_version:
+        description: "Tailscale version for the Tiny build (empty = latest stable)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build web UI (Next.js static export)
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          npm ci --no-audit --no-fund
+          npx next build
+          rm -rf backend/web/out && mkdir -p backend/web/out
+          cp -r out/. backend/web/out/
+
+      - name: Test and build qmanager-core (linux/armv7)
+        working-directory: backend
+        run: |
+          go test ./...
+          mkdir -p ../dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 \
+            go build -trimpath -ldflags="-s -w" -o ../dist/qmanager-core-armv7 ./cmd/server
+
+      - name: Build Tailscale Tiny (linux/armv7, from Tailscale's own source)
+        env:
+          TS_VER_IN: ${{ inputs.tailscale_version }}
+        run: |
+          VER="${TS_VER_IN:-$(curl -fsSL 'https://pkgs.tailscale.com/stable/?mode=json' | sed -n 's/.*"TarballsVersion": *"\([^"]*\)".*/\1/p')}"
+          test -n "$VER"
+          git clone --depth 1 --branch "v$VER" https://github.com/tailscale/tailscale.git /tmp/ts
+          cd /tmp/ts
+          FEATURES=osrouter,nattraversal,portmapper,listenrawdisco,advertiseexitnode,advertiseroutes,useexitnode,useroutes,health,ipnbus,debug
+          TAGS="$(GOOS= GOARCH= go run ./cmd/featuretags --min --add=$FEATURES),ts_include_cli"
+          eval "$(CGO_ENABLED=0 GOOS= GOARCH= go run ./cmd/mkversion)"
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -tags="$TAGS" -trimpath \
+            -ldflags "-s -w -X tailscale.com/version.longStamp=$VERSION_LONG -X tailscale.com/version.shortStamp=$VERSION_SHORT" \
+            -o "$GITHUB_WORKSPACE/dist/tailscaled-tiny-armv7" ./cmd/tailscaled
+          echo "$VER" > "$GITHUB_WORKSPACE/dist/tailscale-tiny.version"
+
+      - name: Checksums
+        working-directory: dist
+        run: |
+          sha256sum qmanager-core-armv7 tailscaled-tiny-armv7 > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vos-armv7-binaries
+          path: dist/
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/vos-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          TS=$(cat dist/tailscale-tiny.version)
+          cat > notes.md <<NOTES
+          ARMv7 binaries for the Tri Cascade VOS 5G / SG500M2-X (Compal RXM-G1, SDX55).
+
+          - qmanager-core-armv7: QManager (evairo176 UI) ported to the Compal modem; needs qcmd and
+            vosclean from https://github.com/thalatamsainath/vos5g-sdx55 (install.sh does both).
+          - tailscaled-tiny-armv7: Tailscale $TS built from Tailscale's own source with unused
+            features left out (single binary, CLI built in). Install with install.sh --tailscale-tiny.
+
+          Check downloads against SHA256SUMS.txt. QManager is MIT with Commons Clause (not for sale).
+          NOTES
+          gh release create "$TAG" dist/qmanager-core-armv7 dist/tailscaled-tiny-armv7 dist/SHA256SUMS.txt \
+            --title "$TAG" --notes-file notes.md

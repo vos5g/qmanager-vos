@@ -85,6 +85,11 @@ func main() {
 		lastSoftRecover time.Time
 	)
 	watchdog.SetRecoveryFunc(func(fails int) {
+		// vosclean: pings always run (real latency data); recovery actions
+		// (CFUN toggle / reboot) only when explicitly enabled.
+		if os.Getenv("QM_WATCHDOG") != "1" {
+			return
+		}
 		if !recovering.CompareAndSwap(false, true) {
 			return // recovery udah jalan, gak boleh numpuk
 		}

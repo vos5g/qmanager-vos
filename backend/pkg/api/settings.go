@@ -117,7 +117,7 @@ func (s *Server) HandleIMEISettings(w http.ResponseWriter, r *http.Request) {
 
 		backupEnabled := false
 		backupImeiStr := ""
-		if data, err := os.ReadFile("/etc/qmanager/imei_backup.json"); err == nil {
+		if data, err := os.ReadFile("/data/vosclean/qm/etc/imei_backup.json"); err == nil {
 			var bData struct {
 				Enabled bool   `json:"enabled"`
 				IMEI    string `json:"imei"`
@@ -160,8 +160,8 @@ func (s *Server) HandleIMEISettings(w http.ResponseWriter, r *http.Request) {
 				"imei":    req.BackupIMEI,
 			}
 			if bytes, err := json.Marshal(bData); err == nil {
-				_ = os.MkdirAll("/etc/qmanager", 0755)
-				_ = os.WriteFile("/etc/qmanager/imei_backup.json", bytes, 0644)
+				_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
+				_ = os.WriteFile("/data/vosclean/qm/etc/imei_backup.json", bytes, 0644)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 			return

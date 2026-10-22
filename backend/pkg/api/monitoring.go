@@ -110,7 +110,7 @@ func (s *Server) alertsGet(w http.ResponseWriter) {
 
 func readRebootHistory() []map[string]any {
 	out := []map[string]any{}
-	if data, err := os.ReadFile("/etc/qmanager/crash.log"); err == nil {
+	if data, err := os.ReadFile("/data/vosclean/qm/etc/crash.log"); err == nil {
 		for _, line := range strings.Split(string(data), "\n") {
 			line = strings.TrimSpace(line)
 			if line == "" {

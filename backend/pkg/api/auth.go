@@ -19,7 +19,7 @@ type SessionStore struct {
 
 var globalSessions = &SessionStore{
 	sessions: make(map[string]time.Time),
-	filePath: "/etc/qmanager/sessions.json",
+	filePath: "/data/vosclean/qm/etc/sessions.json",
 }
 
 // LoadSessionsFromDisk is called at startup to restore persisted sessions.
@@ -104,7 +104,7 @@ type LoginRequest struct {
 	Remember bool `json:"remember"`
 }
 
-const authConfigPath = "/etc/qmanager/auth.json"
+const authConfigPath = "/data/vosclean/qm/etc/auth.json"
 
 // verifyPassword checks password against /etc/qmanager/auth.json using the
 // same scheme as the original QManager: sha256(salt + password) hex digest.

@@ -754,7 +754,7 @@ func (s *Server) HandleLANDevices(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDNS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/custom_dns.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/custom_dns.json")
 	mode := qmStr(cfg["mode"])
 	if mode == "" {
 		mode = "preset"
@@ -811,7 +811,7 @@ func (s *Server) HandleDNS(w http.ResponseWriter, r *http.Request) {
 			if e, ok := body["enabled"].(bool); ok {
 				enabled = e
 			}
-			writeJSONFile("/etc/qmanager/custom_dns.json", map[string]any{
+			writeJSONFile("/data/vosclean/qm/etc/custom_dns.json", map[string]any{
 				"mode":    mode,
 				"preset":  preset,
 				"nic":     nic,

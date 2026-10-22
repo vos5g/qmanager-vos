@@ -62,8 +62,8 @@ type ProfileSummaryItem struct {
 	Scenario  ScenarioBinding `json:"scenario"`
 }
 
-const profilesDir = "/etc/qmanager/profiles"
-const activeProfileFile = "/etc/qmanager/active_profile"
+const profilesDir = "/data/vosclean/qm/etc/profiles"
+const activeProfileFile = "/data/vosclean/qm/etc/active_profile"
 
 // Default profile instance for fallbacks
 var defaultProfile = SimProfile{
@@ -285,7 +285,7 @@ func (s *Server) HandleProfilesApply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Persist active profile marker
-	_ = os.MkdirAll("/etc/qmanager", 0755)
+	_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
 	if err := os.WriteFile(activeProfileFile, []byte(req.ID), 0644); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "write_failed"})
 		return

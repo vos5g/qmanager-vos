@@ -55,7 +55,7 @@ func (s *Server) HandleSMS(w http.ResponseWriter, r *http.Request) {
 }
 
 func smsToolBin() string {
-	for _, p := range []string{"/usr/bin/sms_tool", "/opt/sbin/sms_tool", "/usr/sbin/sms_tool"} {
+	for _, p := range []string{"/data/vosclean/qm/bin/sms_tool", "/usr/bin/sms_tool", "/opt/sbin/sms_tool", "/usr/sbin/sms_tool"} {
 		if _, err := exec.LookPath(p); err == nil {
 			return p
 		}

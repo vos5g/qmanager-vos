@@ -32,7 +32,7 @@ import (
 // Config backup: collect / apply / apply_status / apply_cancel
 // -----------------------------------------------------------------------------
 
-const configBackupDir = "/etc/qmanager"
+const configBackupDir = "/data/vosclean/qm/etc"
 
 // qmConfigSectionFile maps a backup section key to the /etc/qmanager file that
 // backs it. Only files here are ever written by apply.sh — the safe subset.
@@ -295,8 +295,8 @@ func (s *Server) HandleConfigBackupApplyCancel(w http.ResponseWriter, r *http.Re
 // Connection scenarios: activate / save / delete (list.sh already exists)
 // -----------------------------------------------------------------------------
 
-const scenariosCustomFile = "/etc/qmanager/scenarios_custom.json"
-const activeScenarioFile = "/etc/qmanager/active_scenario"
+const scenariosCustomFile = "/data/vosclean/qm/etc/scenarios_custom.json"
+const activeScenarioFile = "/data/vosclean/qm/etc/active_scenario"
 
 // loadCustomScenarios reads custom scenario definitions (additive to the
 // built-in defaults served by HandleScenariosList).
@@ -624,7 +624,7 @@ func (s *Server) HandleScenarioDelete(w http.ResponseWriter, r *http.Request) {
 // Language packs: install_status / install_cancel / remove
 // -----------------------------------------------------------------------------
 
-const localesDir = "/usrdata/qmanager/web/locales"
+const localesDir = "/data/vosclean/qm/web/locales"
 
 // HandleLanguagePacksInstallStatus reports the (synchronous) install job state
 // using the shape the frontend LanguagePackInstallState expects: {state, code,
@@ -759,7 +759,7 @@ func (s *Server) HandleProfilesApplyStatus(w http.ResponseWriter, r *http.Reques
 func (s *Server) HandleTowerFailoverStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	failoverEnabled := fileExists("/etc/qmanager/tower_failover.enabled") || fileExistsAndEquals("/etc/qmanager/tower_failover_enabled", "1")
+	failoverEnabled := fileExists("/data/vosclean/qm/etc/tower_failover.enabled") || fileExistsAndEquals("/data/vosclean/qm/etc/tower_failover_enabled", "1")
 	failoverActivated := fileExists("/tmp/qmanager_tower_failover")
 	watcherRunning := fileExists("/tmp/qmanager_tower_failover.pid")
 

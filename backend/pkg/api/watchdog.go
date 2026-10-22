@@ -21,10 +21,10 @@ import (
 // ---------------------------------------------------------------------------
 
 const (
-	qmConfigFile   = "/etc/qmanager/qmanager.conf"
+	qmConfigFile   = "/data/vosclean/qm/etc/qmanager.conf"
 	qmWatchcatState = "/tmp/qmanager_watchcat.json"
 	qmSimSwapFlag  = "/tmp/qmanager_sim_swap_detected"
-	qmSimFailover  = "/etc/qmanager/qmanager_sim_failover"
+	qmSimFailover  = "/data/vosclean/qm/etc/qmanager_sim_failover"
 	qmReloadFlag   = "/tmp/qmanager_watchcat_reload"
 	qmDisabledFlag = "/tmp/qmanager_watchcat_disabled"
 )
@@ -149,7 +149,7 @@ func (s *Server) watchdogGet(w http.ResponseWriter) {
 	probeProfile := "relaxed"
 	var intervalOverride any
 	qualityThresholds := map[string]any(nil)
-	if pp := qmReadJSONFile("/etc/qmanager/ping_profile.json"); len(pp) > 0 {
+	if pp := qmReadJSONFile("/data/vosclean/qm/etc/ping_profile.json"); len(pp) > 0 {
 		if p, ok := pp["profile"].(string); ok && p != "" {
 			probeProfile = p
 		}
@@ -157,7 +157,7 @@ func (s *Server) watchdogGet(w http.ResponseWriter) {
 			intervalOverride = o
 		}
 	}
-	if qt := qmReadJSONFile("/etc/qmanager/quality_thresholds.json"); len(qt) > 0 {
+	if qt := qmReadJSONFile("/data/vosclean/qm/etc/quality_thresholds.json"); len(qt) > 0 {
 		qualityThresholds = qt
 	}
 

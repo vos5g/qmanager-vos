@@ -42,7 +42,7 @@ func (b *BandManager) GetCurrentBands() (*BandConfig, *FailoverStatus, error) {
 	}
 
 	failover := &FailoverStatus{
-		Enabled:        fileExistsAndEquals("/etc/qmanager/band_failover_enabled", "1"),
+		Enabled:        fileExistsAndEquals("/data/vosclean/qm/etc/band_failover_enabled", "1"),
 		Activated:      fileExists("/tmp/qmanager_band_failover"),
 		WatcherRunning: fileExists("/tmp/qmanager_band_failover.pid"),
 	}

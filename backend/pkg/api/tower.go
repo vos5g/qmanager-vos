@@ -222,7 +222,7 @@ func (s *Server) HandleTowerStatus(w http.ResponseWriter, r *http.Request) {
 	lteLocked := strings.Contains(rawLte, "1") && !strings.Contains(rawLte, "ERROR")
 	nrLocked := strings.Contains(rawNr, "1") && !strings.Contains(rawNr, "ERROR")
 
-	failoverEnabled := checkFileExistsAndEquals("/etc/qmanager/tower_failover_enabled", "1")
+	failoverEnabled := checkFileExistsAndEquals("/data/vosclean/qm/etc/tower_failover_enabled", "1")
 	failoverActivated := fileExists("/tmp/qmanager_tower_failover")
 	watcherRunning := fileExists("/tmp/qmanager_tower_failover.pid")
 

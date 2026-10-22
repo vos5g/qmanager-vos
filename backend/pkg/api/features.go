@@ -172,7 +172,7 @@ func (s *Server) HandleIPPassthrough(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandlePingProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/ping_profile.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/ping_profile.json")
 	profile := qmStr(cfg["profile"])
 	if profile == "" {
 		profile = "relaxed"
@@ -193,7 +193,7 @@ func (s *Server) HandlePingProfile(w http.ResponseWriter, r *http.Request) {
 
 	// interval_override from watchdog (custom probe interval)
 	override := 0
-	if wd := qmReadJSONFile("/etc/qmanager/watchcat.json"); wd != nil {
+	if wd := qmReadJSONFile("/data/vosclean/qm/etc/watchcat.json"); wd != nil {
 		override = qmCfgInt(wd, "interval_override", 0)
 	}
 	effInterval := interval
@@ -219,7 +219,7 @@ func (s *Server) HandlePingProfile(w http.ResponseWriter, r *http.Request) {
 		if n, ok := asInt(body["interval_sec"]); ok {
 			interval = n
 		}
-		writeJSONFile("/etc/qmanager/ping_profile.json", map[string]any{
+		writeJSONFile("/data/vosclean/qm/etc/ping_profile.json", map[string]any{
 			"profile":        profile,
 			"interval_sec":   interval,
 			"fail_secs":      failSecs,
@@ -247,7 +247,7 @@ func (s *Server) HandlePingProfile(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleQualityThresholds(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/quality_thresholds.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/quality_thresholds.json")
 	latencyPreset := "standard"
 	lossPreset := "standard"
 	if lp, ok := cfg["latency"].(map[string]any); ok {
@@ -286,7 +286,7 @@ func (s *Server) HandleQualityThresholds(w http.ResponseWriter, r *http.Request)
 			if v, ok2 := t["loss"].(map[string]any); ok2 {
 				los = v
 			}
-			writeJSONFile("/etc/qmanager/quality_thresholds.json", map[string]any{
+			writeJSONFile("/data/vosclean/qm/etc/quality_thresholds.json", map[string]any{
 				"latency": lat,
 				"loss":    los,
 			})
@@ -318,7 +318,7 @@ func (s *Server) HandleAdaptivePolling(w http.ResponseWriter, r *http.Request) {
 	idleInterval := 10
 	idleThreshold := 60
 	deepIdleInterval := 60
-	cfg := qmReadJSONFile("/etc/qmanager/adaptive_polling.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/adaptive_polling.json")
 	if m, ok := cfg["mode"].(string); ok && m != "" {
 		mode = m
 	}
@@ -359,7 +359,7 @@ func (s *Server) HandleAdaptivePolling(w http.ResponseWriter, r *http.Request) {
 			if v, ok := asInt(body["deep_idle_interval"]); ok {
 				deepIdleInterval = v
 			}
-			writeJSONFile("/etc/qmanager/adaptive_polling.json", map[string]any{
+			writeJSONFile("/data/vosclean/qm/etc/adaptive_polling.json", map[string]any{
 				"mode": mode, "enabled": enabled,
 				"active_grace": activeGrace, "idle_interval": idleInterval,
 				"idle_threshold": idleThreshold, "deep_idle_interval": deepIdleInterval,
@@ -392,7 +392,7 @@ func (s *Server) HandleAdaptivePolling(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleMTU(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/mtu.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/mtu.json")
 	mtu := qmCfgInt(cfg, "mtu", 1500)
 	auto := true
 	if v, ok := cfg["auto"].(bool); ok {
@@ -408,7 +408,7 @@ func (s *Server) HandleMTU(w http.ResponseWriter, r *http.Request) {
 			if n, ok := asInt(body["mtu"]); ok {
 				mtu = n
 			}
-			writeJSONFile("/etc/qmanager/mtu.json", map[string]any{"mtu": mtu, "auto": auto})
+			writeJSONFile("/data/vosclean/qm/etc/mtu.json", map[string]any{"mtu": mtu, "auto": auto})
 		}
 	}
 
@@ -423,7 +423,7 @@ func (s *Server) HandleMTU(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleCustomDNS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/custom_dns.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/custom_dns.json")
 	enabled := qmBool(cfg["enabled"])
 	servers := []string{}
 	if v, ok := cfg["servers"].([]any); ok {
@@ -448,7 +448,7 @@ func (s *Server) HandleCustomDNS(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-			writeJSONFile("/etc/qmanager/custom_dns.json", map[string]any{
+			writeJSONFile("/data/vosclean/qm/etc/custom_dns.json", map[string]any{
 				"enabled": enabled,
 				"servers": servers,
 			})
@@ -481,7 +481,7 @@ const (
 	qmNfqwsPIDFile         = "/var/run/nfqws.pid"
 	qmVideoReloadFlag      = "/tmp/qmanager_video_reload"
 	qmVideoPacketsFile     = "/tmp/qmanager_video_packets"
-	qmHostlistFile         = "/etc/qmanager/video_domains.txt"
+	qmHostlistFile         = "/data/vosclean/qm/etc/video_domains.txt"
 )
 
 // fileExistsAny reports whether any of the candidate paths exists on disk.
@@ -752,7 +752,7 @@ func (s *Server) HandleTrafficMasquerade(w http.ResponseWriter, r *http.Request)
 func (s *Server) HandleSMSForwarding(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	cfg := qmReadJSONFile("/etc/qmanager/sms_forwarding.json")
+	cfg := qmReadJSONFile("/data/vosclean/qm/etc/sms_forwarding.json")
 	enabled := qmBool(cfg["enabled"])
 	number := qmStr(cfg["number"])
 
@@ -768,7 +768,7 @@ func (s *Server) HandleSMSForwarding(w http.ResponseWriter, r *http.Request) {
 		if v, ok := body["number"].(string); ok {
 			number = v
 		}
-		writeJSONFile("/etc/qmanager/sms_forwarding.json", map[string]any{
+		writeJSONFile("/data/vosclean/qm/etc/sms_forwarding.json", map[string]any{
 			"enabled": enabled,
 			"number":  number,
 		})
@@ -850,7 +850,7 @@ func (s *Server) HandleKnownSims(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Known SIMs tracked in a JSON list of ICCIDs
-	path := "/etc/qmanager/known_sims.json"
+	path := "/data/vosclean/qm/etc/known_sims.json"
 	sims := []string{} // always non-nil — frontend expects an array, never null
 	if data, err := os.ReadFile(path); err == nil {
 		_ = json.Unmarshal(data, &sims)

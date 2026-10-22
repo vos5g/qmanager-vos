@@ -73,7 +73,7 @@ func (s *Server) HandleLanguagePacksList(w http.ResponseWriter, r *http.Request)
 	}
 	installed := []map[string]string{{"code": "en", "name": "English"}}
 
-	if data, err := os.ReadFile("/usrdata/qmanager/web/locales/en/common.json"); err == nil && len(data) > 0 {
+	if data, err := os.ReadFile("/data/vosclean/qm/web/locales/en/common.json"); err == nil && len(data) > 0 {
 		_ = data
 	}
 

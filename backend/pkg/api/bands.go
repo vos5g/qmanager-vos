@@ -43,7 +43,7 @@ func (s *Server) HandleBandsCurrent(w http.ResponseWriter, r *http.Request) {
 		nrdcBands = parseSingleLineParam(resp, `+QNWPREFCFG: "nrdc_nr5g_band",`)
 	}
 
-	failoverEnabled := fileExists("/etc/qmanager/band_failover.enabled") || fileExistsAndEquals("/etc/qmanager/band_failover_enabled", "1")
+	failoverEnabled := fileExists("/data/vosclean/qm/etc/band_failover.enabled") || fileExistsAndEquals("/data/vosclean/qm/etc/band_failover_enabled", "1")
 	failoverActivated := fileExists("/tmp/qmanager_band_failover")
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -149,7 +149,7 @@ func (s *Server) HandleBandsFailoverToggle(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_ = os.MkdirAll("/etc/qmanager", 0755)
+	_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
 
 	isEnabled := false
 	if req.Enabled != nil {
@@ -159,11 +159,11 @@ func (s *Server) HandleBandsFailoverToggle(w http.ResponseWriter, r *http.Reques
 	}
 
 	if isEnabled {
-		_ = os.WriteFile("/etc/qmanager/band_failover.enabled", []byte("1\n"), 0644)
-		_ = os.WriteFile("/etc/qmanager/band_failover_enabled", []byte("1\n"), 0644)
+		_ = os.WriteFile("/data/vosclean/qm/etc/band_failover.enabled", []byte("1\n"), 0644)
+		_ = os.WriteFile("/data/vosclean/qm/etc/band_failover_enabled", []byte("1\n"), 0644)
 	} else {
-		_ = os.Remove("/etc/qmanager/band_failover.enabled")
-		_ = os.Remove("/etc/qmanager/band_failover_enabled")
+		_ = os.Remove("/data/vosclean/qm/etc/band_failover.enabled")
+		_ = os.Remove("/data/vosclean/qm/etc/band_failover_enabled")
 		_ = os.Remove("/tmp/qmanager_band_failover")
 	}
 
@@ -177,7 +177,7 @@ func (s *Server) HandleBandsFailoverToggle(w http.ResponseWriter, r *http.Reques
 func (s *Server) HandleBandsFailoverStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	failoverEnabled := fileExists("/etc/qmanager/band_failover.enabled") || fileExistsAndEquals("/etc/qmanager/band_failover_enabled", "1")
+	failoverEnabled := fileExists("/data/vosclean/qm/etc/band_failover.enabled") || fileExistsAndEquals("/data/vosclean/qm/etc/band_failover_enabled", "1")
 	failoverActivated := fileExists("/tmp/qmanager_band_failover")
 	watcherRunning := fileExists("/tmp/qmanager_band_failover.pid")
 

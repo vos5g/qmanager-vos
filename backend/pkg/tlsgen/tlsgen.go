@@ -20,7 +20,7 @@ import (
 // If missing, it generates a self-signed ECDSA P-256 certificate with local IP/DNS SANs.
 func EnsureCertificates(certDir string) (certPath string, keyPath string, err error) {
 	if certDir == "" {
-		certDir = "/etc/qmanager/tls"
+		certDir = "/data/vosclean/qm/etc/tls"
 	}
 
 	certPath = filepath.Join(certDir, "cert.pem")

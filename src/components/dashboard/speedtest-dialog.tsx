@@ -383,6 +383,9 @@ export function SpeedtestDialog({ open, onOpenChange }: SpeedtestDialogProps) {
               <p className="text-sm text-muted-foreground text-center">
                 {t("speedtest.dialog_idle_description")}
               </p>
+              <p className="text-xs text-muted-foreground text-center">
+                {t("speedtest.on_device_note")}
+              </p>
 
               {/* Server selection */}
               <div className="w-full space-y-2">

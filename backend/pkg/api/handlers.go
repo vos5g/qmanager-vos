@@ -126,6 +126,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/network/speedtest_servers.sh", RequireAuth(s.HandleSpeedtestServers))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/speedtest_start.sh", RequireAuth(s.HandleSpeedtestStart))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/speedtest_status.sh", RequireAuth(s.HandleSpeedtestStatus))
+	mux.HandleFunc("/cgi-bin/quecmanager/at_cmd/speedtest_stop.sh", RequireAuth(s.HandleSpeedtestStop))
 
 	// System Management & Polling Routes — Auth Required
 	mux.HandleFunc("/cgi-bin/quecmanager/system/ping_profile.sh", RequireAuth(s.HandlePingProfile))

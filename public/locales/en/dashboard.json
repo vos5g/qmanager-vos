@@ -136,6 +136,7 @@
     "start_button_aria": "Start speed test",
     "idle_description": "Start a speed test to measure your current network speed.",
     "dialog_idle_description": "Measure your current download speed, upload speed, and latency.",
+    "on_device_note": "The test runs on the modem itself, against speedtest.net servers. Its single CPU core caps the result at roughly 50 to 100 Mbps, so devices connected to the stick (which use the hardware fast path) can be faster.",
     "result_label": "Speedtest result:",
     "last_updated": "Last updated {{time}}",
     "title": "Speed Test",

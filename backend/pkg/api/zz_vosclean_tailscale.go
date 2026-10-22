@@ -139,11 +139,6 @@ func (p tsPrefsJSON) exitNodeAdvertised() bool {
 	return false
 }
 
-func tsExitNodeAdvertised() bool {
-	p, _ := tsPrefs()
-	return p.exitNodeAdvertised()
-}
-
 // tsForwarding (re)applies the iptables rules that let devices behind the stick
 // use accepted subnet routes: MASQUERADE out of tailscale0 and MSS clamping.
 // vosclean's watch loop keeps them in place if QCMAP flushes the tables.

@@ -487,7 +487,7 @@
         "lte_3gpp_release_label": "3GPP Release (LTE)",
         "nr5g_3gpp_release_label": "3GPP Release (NR5G)",
         "hostname_label": "Hostname",
-        "openwrt_version_label": "OpenWRT Version",
+        "openwrt_version_label": "OS Version",
         "kernel_version_label": "Kernel Version"
       },
       "error": {
@@ -498,7 +498,7 @@
     },
     "about_qmanager": {
       "card_title": "About QManager",
-      "card_description": "Modem management interface for OpenWRT.",
+      "card_description": "Modem management interface for the VOS 5G / SG500M2-X.",
       "copyright": "© {{year}} QManager. All rights reserved.",
       "sections": {
         "qmanager": "QManager",

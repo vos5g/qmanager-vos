@@ -412,31 +412,33 @@ func (s *Server) HandleAboutDevice(w http.ResponseWriter, r *http.Request) {
 		hostname = "qmanager-host"
 	}
 
+	vi := vosAbout(firmware)
+
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"device": map[string]interface{}{
 			"model":        model,
 			"manufacturer": manufacturer,
-			"firmware":     firmware,
-			"build_date":   "-",
+			"firmware":     dashIfEmpty(vi.firmware),
+			"build_date":   dashIfEmpty(vi.buildDate),
 			"imei":         imei,
 		},
 		"3gpp_release": map[string]interface{}{
-			"lte":  "Rel 14",
-			"nr5g": "N/A",
+			"lte":  vi.lteRelease,
+			"nr5g": vi.nrRelease,
 		},
 		"network": map[string]interface{}{
-			"device_ip":   "127.0.0.1",
-			"lan_subnet":  "-",
-			"wan_ipv4":    "-",
-			"wan_ipv6":    "-",
-			"public_ipv4": "-",
-			"public_ipv6": "-",
+			"device_ip":   dashIfEmpty(vi.deviceIP),
+			"lan_subnet":  dashIfEmpty(vi.lanSubnet),
+			"wan_ipv4":    dashIfEmpty(vi.wanIPv4),
+			"wan_ipv6":    dashIfEmpty(vi.wanIPv6),
+			"public_ipv4": dashIfEmpty(vi.publicIPv4),
+			"public_ipv6": dashIfEmpty(vi.publicIPv6),
 		},
 		"system": map[string]interface{}{
 			"hostname":         hostname,
-			"kernel_version":   "Linux Host",
-			"openwrt_version":  "v1.0.2 Engine",
+			"kernel_version":   dashIfEmpty(vi.kernel),
+			"openwrt_version":  dashIfEmpty(vi.osVersion),
 			"qmanager_version": qmanagerVersion,
 		},
 	})

@@ -1,7 +1,6 @@
 package at
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -79,108 +78,26 @@ func (c *Client) Exec(cmd string) (string, error) {
 		}
 	}
 
-	// Mock / Development fallback
-	return c.execMock(cmd)
+	if runtime.GOOS != "linux" {
+		return c.execMock(cmd) // development builds only
+	}
+	return "ERROR", fmt.Errorf("modem not reachable")
 }
 
 func (c *Client) execOnModem(cmd string) (string, error) {
-	// 0. Prefer qcmd — the QManager AT gatekeeper that uses flock to
-	// serialize access to /dev/smd11. On this platform the shell daemons
-	// (qmanager_poller, qmanager_watchcat) also go through qcmd, so using it
-	// here guarantees we never collide with them on the serial port.
-	if _, err := exec.LookPath("qcmd"); err == nil {
-		// qcmd accepts the AT command directly as an argument (one process).
-		// The legacy `echo ... | qcmd` pipe spawned sh + qcmd (two processes),
-		// doubling subprocess churn — significant on a 1-core modem where the
-		// Go poller fires ~21 AT calls per cycle.
-		subCmd := exec.Command("qcmd", cmd)
-		out, err := subCmd.Output()
-		if err == nil {
-			res := strings.TrimSpace(string(out))
-			if res != "" {
-				return res, nil
-			}
-		}
-	}
-
-	// 1. Try atcli_smd11 directly (Quectel SMD AT client binary)
-	if _, err := exec.LookPath("/usr/bin/atcli_smd11"); err == nil {
-		out, err := exec.Command("/usr/bin/atcli_smd11", cmd).Output()
-		if err == nil {
-			res := strings.TrimSpace(string(out))
-			if res != "" {
-				return res, nil
-			}
-		}
-	} else if _, err := exec.LookPath("atcli_smd11"); err == nil {
-		out, err := exec.Command("atcli_smd11", cmd).Output()
-		if err == nil {
-			res := strings.TrimSpace(string(out))
-			if res != "" {
-				return res, nil
-			}
-		}
-	}
-
-	// 2. Try piping command to qcmd via stdin
-	if _, err := exec.LookPath("qcmd"); err == nil {
-		subCmd := exec.Command("qcmd", cmd)
-		out, err := subCmd.Output()
-		if err == nil {
-			res := strings.TrimSpace(string(out))
-			if res != "" {
-				return res, nil
-			}
-		}
-	}
-
-	// Dynamic re-check if port was plugged in post-launch
-	if _, err := os.Stat(c.devicePath); err != nil {
-		c.devicePath = detectATDevice(c.devicePath)
-	}
-
-	// Direct device check
-	if _, err := os.Stat(c.devicePath); err != nil {
-		return "", fmt.Errorf("AT device path %s does not exist: %w", c.devicePath, err)
-	}
-
-	f, err := os.OpenFile(c.devicePath, os.O_RDWR, 0)
+	// vosclean build: the Compal RXM-G1 is driven only through qcmd (Quectel-AT
+	// compatibility layer). No raw serial writes, no mock data.
+	bin, err := exec.LookPath("qcmd")
 	if err != nil {
-		return "", fmt.Errorf("failed to open AT device %s: %w", c.devicePath, err)
+		return "", fmt.Errorf("qcmd not found: %w", err)
 	}
-	defer f.Close()
-
-	// Send AT command
-	if !strings.HasSuffix(cmd, "\r\n") {
-		cmd = cmd + "\r\n"
-	}
-	if _, err := f.WriteString(cmd); err != nil {
-		return "", fmt.Errorf("failed to write to AT device: %w", err)
-	}
-
-	// Read response buffer with timeout
-	buf := make([]byte, 1024)
-	var response bytes.Buffer
-	deadline := time.Now().Add(c.timeout)
-
-	for time.Now().Before(deadline) {
-		_ = f.SetReadDeadline(time.Now().Add(200 * time.Millisecond))
-		n, err := f.Read(buf)
-		if n > 0 {
-			response.Write(buf[:n])
-			resStr := response.String()
-			if strings.Contains(resStr, "OK\r\n") || strings.Contains(resStr, "ERROR\r\n") {
-				break
-			}
-		}
-		if err != nil && !os.IsTimeout(err) {
-			break
-		}
-	}
-
-	res := strings.TrimSpace(response.String())
+	out, err := exec.Command(bin, cmd).Output()
+	res := strings.TrimSpace(string(out))
 	if res == "" {
-		return "", fmt.Errorf("no response from AT device %s", c.devicePath)
+		if err == nil {
+			err = fmt.Errorf("empty response")
+		}
+		return "", err
 	}
 	return res, nil
 }

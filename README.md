@@ -46,34 +46,37 @@ The full upstream history is kept, with the VOS changes as separate commits on t
 
 | Area | On the VOS 5G |
 |---|---|
-| Dashboard | Operator, network type, signal (RSRP/RSRQ/SINR), per-carrier details, temperatures, CPU and memory, latency and RTT, recent events |
-| Cellular Information | Cell ID, TAC, PCI, ARFCN, band and bandwidth, carrier aggregation, APN, WAN IP, carrier DNS |
-| Antenna statistics | Per-receive-chain RSRP/RSRQ/SINR (4×4 on n78) |
+| Dashboard | Operator, network type, signal (RSRP/RSRQ/SINR), per-carrier details, temperatures, CPU and memory, live traffic, latency and RTT, recent events, connection uptime |
+| Cellular Information | Cell ID, TAC, PCI, ARFCN, band and bandwidth, carrier aggregation, APN, WAN IP, carrier DNS, LTE cell distance (timing advance) |
+| Antenna statistics / alignment | Per-receive-chain RSRP/RSRQ/SINR (4×4 on n78) |
 | Band locking | LTE, NR5G-NSA and NR5G-SA band masks, plus restore to factory |
-| Cell / frequency locking | LTE cell lock, 5G cell lock, 5G ARFCN lock |
-| Cell scanner | Serving cell plus LTE neighbours of your carrier (read over QMI) |
-| Network mode | Auto, LTE only, 5G only, LTE+5G |
+| Tower / frequency locking | LTE cell lock, 5G SA cell lock, 5G ARFCN lock |
+| Cell scanner | Serving cell plus LTE neighbours of your carrier (read over QMI), frequency calculator |
+| Connection scenarios | Network mode (Auto, LTE only, 5G only, LTE+5G) and band sets in one click |
 | APN | View and change |
 | SMS | Inbox, send, delete. On 5G SA, sending switches to LTE and back automatically |
 | Custom DNS | Applied for real: the modem's dnsmasq queries are redirected to your resolvers |
 | Tailscale | Install (Official download or 15 MB "Tiny" build), log in, start on boot, accept subnet routes, use or advertise an exit node |
-| WireGuard | Connect to any WireGuard VPN: upload, paste or enter configs, edit and delete them; kernel or userspace engine, LAN-only or LAN + stick, kill switch, the config's DNS |
-| AT terminal | Compal AT commands. IMEI writes, factory reset and USB-mode changes are blocked |
-| Latency / events / logs | Real pings and history |
+| NetBird | Install the official build, connect with a setup key, start on boot |
+| WireGuard | Connect to any WireGuard VPN: upload, paste or enter configs, edit and delete them; kernel or userspace engine, LAN-only or LAN + stick, kill switch, the config's DNS. 65 Mbit/s through a commercial VPN with the kernel engine |
+| System | Bandwidth monitor, system logs, System Health Check with a redacted support bundle, web console, extra kernel modules, AT terminal (IMEI writes, factory reset and USB-mode changes blocked), speed test |
 
-## What doesn't (and why)
+## What's hidden (and why)
 
-| Feature | Reason |
+Pages and controls that would do nothing on this modem are hidden rather than left looking usable. The list, with the reason for each, is in [`src/constants/vos-features.ts`](src/constants/vos-features.ts); deleting an entry brings it back once it works.
+
+| Hidden | Why |
 |---|---|
-| Traffic Engine / video optimiser / DPI masking | User traffic takes the IPA hardware fast path and never reaches Linux, so `nfqws` can't see it |
-| Second SIM slot | The VOS board has one SIM holder |
-| LTE frequency-only lock | The modem only locks LTE to a cell (EARFCN + PCI) |
-| NR-DC / mmWave | The module has no mmWave RF |
-| IMEI editing | Deliberately disabled |
-| Self-update | Disabled: an upstream update would replace this build |
-| Exit-node speed | WireGuard runs in software on the Cortex-A7: about 17–18 Mbit/s |
-
-Several other pages still show upstream's placeholder values on this modem: TTL and the bandwidth monitor. They are being replaced one by one.
+| Traffic Engine, DPI masking, TTL | User traffic takes the IPA hardware fast path and never reaches Linux, so `nfqws` and TTL rules can't see it |
+| IP passthrough, LAN address editor, Ethernet status | Stubs upstream; the VOS has no Ethernet port |
+| Custom SIM profiles | Applying a profile doesn't change the modem yet (Connection Scenarios do) |
+| Cellular → Settings (SIM slot, radio power, 5G architecture, roaming), network priority, MBN | Not wired to the modem, or no Compal equivalent |
+| IMEI editing, FPLMN | Deliberately blocked SIM/NV writes |
+| Alerts, SMS forwarding, watchdog recovery | Settings are saved, but no daemon acts on them here (vosclean handles modem crashes) |
+| Band and tower-lock failover, tower-lock schedule, LTE EARFCN-only lock | No watcher daemon; the modem only locks LTE to a cell |
+| General settings, languages, backup/restore, connection quality, adaptive polling | Not saved or not applied on this build |
+| Self-update | An upstream update would replace this build |
+| Second SIM, NR-DC / mmWave | Not in the hardware |
 
 ## Install
 
@@ -110,8 +113,8 @@ The stick draws a lot under 5G load. Powered from a router's USB port (tested on
                      qcmd ──▶ cricli (Compal radio CLI)        ┐
                           ──▶ atcli  (AT+BINFO / AT+BNRINFO …) ├─▶ SDX55 modem
                           ──▶ QMI over QRTR (cell scan)         ┘
- vosclean (boot hook in /oem) starts QManager and tailscaled, and owns the firewall,
- SSH, DNS DNAT and Tailscale NAT rules
+ vosclean (boot hook in /oem) starts QManager, tailscaled and the WireGuard
+ tunnel (vos-wg), and owns the firewall, SSH, DNS DNAT and Tailscale NAT rules
 ```
 
 Files on the modem:

@@ -57,6 +57,7 @@ The full upstream history is kept, with the VOS changes as separate commits on t
 | SMS | Inbox, send, delete. On 5G SA, sending switches to LTE and back automatically |
 | Custom DNS | Applied for real: the modem's dnsmasq queries are redirected to your resolvers |
 | Tailscale | Install (Official download or 15 MB "Tiny" build), log in, start on boot, accept subnet routes, use or advertise an exit node |
+| WireGuard | Connect to any WireGuard VPN: upload, paste or enter configs, edit and delete them; kernel or userspace engine, LAN-only or LAN + stick, kill switch, the config's DNS |
 | AT terminal | Compal AT commands. IMEI writes, factory reset and USB-mode changes are blocked |
 | Latency / events / logs | Real pings and history |
 
@@ -121,6 +122,7 @@ Files on the modem:
 | `/data/vosclean/qm/bin/qcmd` | AT translator |
 | `/data/vosclean/qm/etc/` | QManager settings: auth, sessions, TLS certs, profiles, DNS, … |
 | `/data/vosclean/tailscale/` | Tailscale binaries and state |
+| `/data/vosclean/wireguard/` | WireGuard configs (root only) and the active one |
 | `/data/vosclean/log/qmanager.log` | QManager output |
 | `/data/vosclean/log/qm-requests.log` | Every state-changing request (method, path, client; no bodies) |
 | `/data/vosclean/log/qcmd-writes.log` | Every state-changing AT/cricli command |

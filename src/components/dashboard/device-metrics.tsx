@@ -577,12 +577,18 @@ const DeviceMetricsComponent = ({
                   {nrTa !== null && nrTa > 0 ? (
                     <p>{t("metrics.nr_distance_tooltip", { ta: nrTa })}</p>
                   ) : (
-                    <p>{t("metrics.ta_unavailable")}</p>
+                    <p className="max-w-64">{t("metrics.nr_ta_unsupported")}</p>
                   )}
                 </TooltipContent>
               </Tooltip>
               <p className="font-semibold text-sm tabular-nums">
-                {formatDistance(nrDistance, unitPrefs?.distanceUnit)}
+                {nrDistance !== null ? (
+                  formatDistance(nrDistance, unitPrefs?.distanceUnit)
+                ) : (
+                  <span className="font-normal text-muted-foreground">
+                    {t("metrics.nr_distance_not_reported")}
+                  </span>
+                )}
               </p>
             </div>
           </div>

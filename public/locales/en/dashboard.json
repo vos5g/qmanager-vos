@@ -82,6 +82,8 @@
     "nr_cell_distance": "NR Cell Distance",
     "lte_distance_tooltip": "This is only an approximation based on the LTE Timing Advance value of {{ta}}.",
     "nr_distance_tooltip": "This is only an approximation based on the NR Timing Advance value of {{ta}}.",
+    "nr_distance_not_reported": "Not reported",
+    "nr_ta_unsupported": "This modem doesn't report 5G (NR) timing advance, so the distance to a 5G cell can't be estimated. LTE distance appears while you're connected over LTE.",
     "ta_unavailable": "Timing Advance value is not available.",
     "connection_uptime": "Connection Uptime",
     "device_uptime": "Device Uptime",

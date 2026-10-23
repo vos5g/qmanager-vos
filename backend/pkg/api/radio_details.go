@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -101,6 +102,14 @@ func (s *Server) HandleRadioDetails(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// vosclean: qcmd answers lte_time_advance from QMI (present only while on
+	// LTE). This modem has no NR timing advance, so nr_ta stays empty.
+	if lteTa == "" {
+		if resp, err := s.atClient.Exec(`AT+QNWCFG="lte_time_advance"`); err == nil {
+			lteTa = parseQNWCFGTimeAdvance(resp, "lte_time_advance")
+		}
+	}
+
 	response := map[string]interface{}{
 		"success": true,
 		"stale":   false,
@@ -117,4 +126,24 @@ func (s *Server) HandleRadioDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// parseQNWCFGTimeAdvance reads <ta> from `+QNWCFG: "<key>",<enabled>,<ta>`;
+// "" when absent or "-".
+func parseQNWCFGTimeAdvance(resp, key string) string {
+	for _, line := range strings.Split(resp, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, `+QNWCFG: "`+key+`"`) {
+			continue
+		}
+		parts := strings.Split(line, ",")
+		if len(parts) >= 3 {
+			if v := strings.TrimSpace(parts[2]); v != "-" && v != "" {
+				if _, err := strconv.Atoi(v); err == nil {
+					return v
+				}
+			}
+		}
+	}
+	return ""
 }

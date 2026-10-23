@@ -18,6 +18,7 @@ import {
   LineChart,
   Bell,
   Bird,
+  Shield,
   Network,
   Globe,
   Cpu,
@@ -64,6 +65,7 @@ const SECTION_NAV_DATA: Record<SectionType, SubNavItem[]> = {
     { title: "Alerts", href: "/monitoring/alerts", icon: Bell },
     { title: "NetBird", href: "/monitoring/netbird", icon: Bird },
     { title: "Tailscale", href: "/monitoring/tailscale", icon: Network },
+    { title: "WireGuard", href: "/monitoring/wireguard", icon: Shield },
   ],
   "local-network": [
     { title: "LAN & Devices", href: "/local-network", icon: Network },

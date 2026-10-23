@@ -52,6 +52,7 @@ describe("App Router Smoke Tests", () => {
       import("@/app/monitoring/alerts/page"),
       import("@/app/monitoring/latency/page"),
       import("@/app/monitoring/watchdog/page"),
+      import("@/app/monitoring/wireguard/page"),
       import("@/app/system-settings/page"),
       import("@/app/system-settings/adaptive-polling/page"),
       import("@/app/system-settings/at-terminal/page"),

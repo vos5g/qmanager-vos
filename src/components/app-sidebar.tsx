@@ -10,6 +10,7 @@ import {
   LucideSignal,
   EthernetPortIcon,
   BirdIcon,
+  ShieldIcon,
   MessageCircleIcon,
   DogIcon,
   RouterIcon,
@@ -203,6 +204,7 @@ const data = {
     },
     { t_key: "tailscale", url: "/monitoring/tailscale", icon: WaypointsIcon },
     { t_key: "netbird", url: "/monitoring/netbird", icon: BirdIcon },
+    { t_key: "wireguard", url: "/monitoring/wireguard", icon: ShieldIcon },
     { t_key: "watchdog", url: "/monitoring/watchdog", icon: DogIcon },
   ],
 };

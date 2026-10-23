@@ -42,6 +42,7 @@
     "alerts": "Alerts",
     "tailscale": "Tailscale",
     "netbird": "NetBird",
+    "wireguard": "WireGuard",
     "watchdog": "Watchdog",
     "system_settings": "System Settings",
     "configuration_backup": "Configuration Backup",

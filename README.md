@@ -35,7 +35,7 @@
 
 This fork keeps evairo176's UI and makes it work on the VOS 5G:
 
-* **The modem is reached through `qcmd`.** `qcmd` is a small translator from the companion repo, [vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55). It answers QManager's Quectel AT commands using Compal's `cricli`, `atcli` and QMI. QManager never falls back to fake data: if the modem can't answer, the page shows nothing.
+* **The modem is reached through `qcmd`.** `qcmd` is a small translator from the companion repo, [vos5g-sdx55](https://github.com/vos5g/vos5g-sdx55). It answers QManager's Quectel AT commands using Compal's `cricli`, `atcli` and QMI. QManager never falls back to fake data: if the modem can't answer, the page shows nothing.
 * **It runs from `/data`.** The VOS root filesystem is read-only, so QManager is started by **vosclean**, the reversible hardening package from the same repo. vosclean also provides key-only SSH, a firewall on the cellular side, a blocked vendor update client and custom DNS.
 * **Pages that were placeholders upstream now work on this modem:** Tailscale, custom DNS, the cell scanner, About Device, the System Health Check (34 checks plus a redacted support bundle) and the speed test (real speedtest.net servers; it runs on the modem's single CPU core, so expect at most about 100 Mbps).
 * **Web console** (System Settings → Web Console): a root shell in the browser, served natively by QManager (no ttyd). Off by default, needs a logged-in session, closes on logout, after 30 idle minutes, or when switched off.
@@ -82,14 +82,14 @@ Pages and controls that would do nothing on this modem are hidden rather than le
 
 You need a VOS 5G (or an SG500M2-X on a USB adapter) on firmware `RXMG1.20.00.326.73` (v73), and a Mac or Linux PC.
 
-1. **Back up first.** Follow the backup guide in [vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55/blob/main/docs/03-backup.md): a QCN through QPST, plus UBI volume images. **Never read the `efs2` partition from Linux, because it resets the modem.**
+1. **Back up first.** Follow the backup guide in [vos5g-sdx55](https://github.com/vos5g/vos5g-sdx55/blob/main/docs/03-backup.md): a QCN through QPST, plus UBI volume images. **Never read the `efs2` partition from Linux, because it resets the modem.**
 2. **Get the binaries.**
    * **From [Releases](../../releases):** `qmanager-core-armv7` and `tailscaled-tiny-armv7`, with `SHA256SUMS.txt`.
    * **Or build them yourself:** see [Building](#building).
    * **`qcmd`:** build it with `./qcmd/build.sh` in vos5g-sdx55.
 3. **Install with vos5g-sdx55's installer**, which sets up vosclean, qcmd and QManager over SSH:
    ```bash
-   git clone https://github.com/thalatamsainath/vos5g-sdx55 && cd vos5g-sdx55
+   git clone https://github.com/vos5g/vos5g-sdx55 && cd vos5g-sdx55
    ./install.sh --check
    ./install.sh --pubkey ~/.ssh/id_ed25519.pub \
                 --qmanager /path/to/qmanager-core-armv7 --qcmd dist/qcmd-armv7 \

@@ -5,7 +5,7 @@ This repository is a fork of [evairo176/qmanager](https://github.com/evairo176/q
 The full upstream history is kept; the changes for this modem are separate commits on top of it.
 
 The device guide, the on-device scripts (vosclean), the AT translator (qcmd), the backup tools and the
-installer live in **[thalatamsainath/vos5g-sdx55](https://github.com/thalatamsainath/vos5g-sdx55)**.
+installer live in **[vos5g/vos5g-sdx55](https://github.com/vos5g/vos5g-sdx55)**.
 
 ## What's different from upstream
 

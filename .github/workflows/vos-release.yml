@@ -90,7 +90,7 @@ jobs:
           ARMv7 binaries for the Tri Cascade VOS 5G / SG500M2-X (Compal RXM-G1, SDX55).
 
           - qmanager-core-armv7: QManager (evairo176 UI) ported to the Compal modem; needs qcmd and
-            vosclean from https://github.com/thalatamsainath/vos5g-sdx55 (install.sh does both).
+            vosclean from https://github.com/vos5g/vos5g-sdx55 (install.sh does both).
           - tailscaled-tiny-armv7: Tailscale $TS built from Tailscale's own source with unused
             features left out (single binary, CLI built in). Install with install.sh --tailscale-tiny.
 

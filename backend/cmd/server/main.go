@@ -20,6 +20,7 @@ import (
 	"qmanager-backend/pkg/at"
 	"qmanager-backend/pkg/daemon"
 	"qmanager-backend/pkg/tlsgen"
+	"qmanager-backend/pkg/wg"
 	"qmanager-backend/web"
 )
 
@@ -47,6 +48,25 @@ func serveWithPortRetry(srv *http.Server, tlsCert, tlsKey string) error {
 }
 
 func main() {
+	// vosclean: the WireGuard tunnel service runs from this same binary as its
+	// own systemd unit (vos-wg), so a QManager restart doesn't drop the tunnel.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "wg-run":
+			os.Exit(wg.Run())
+		case "wg-show":
+			if err := wg.Show(os.Stdout); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		case "wg-cleanup":
+			wg.Cleanup()
+			wg.FlushConntrack()
+			return
+		}
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "80"

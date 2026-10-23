@@ -91,6 +91,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/monitoring/alerts.sh", RequireAuth(s.HandleMonitoringAlerts))
 	mux.HandleFunc("/cgi-bin/quecmanager/monitoring/watchdog.sh", RequireAuth(s.HandleMonitoringWatchdog))
 	mux.HandleFunc("/cgi-bin/quecmanager/vpn/netbird.sh", RequireAuth(s.HandleNetBird))
+	mux.HandleFunc("/cgi-bin/quecmanager/vpn/wireguard.sh", RequireAuth(s.HandleWireGuard))
 	mux.HandleFunc("/cgi-bin/quecmanager/vpn/tailscale.sh", RequireAuth(s.HandleVPNTailscale))
 
 	// System Health Check & Language Packs Routes — Auth Required
@@ -222,15 +223,15 @@ func (s *Server) HandleFetchData(w http.ResponseWriter, r *http.Request) {
 			// the card stays in 'Starting up' forever.
 			if wc := readInternalWatchdogStatus(); len(wc) > 0 {
 				status["watchcat"] = map[string]interface{}{
-					"enabled":             wc["enabled"],
-					"state":               wc["state"],
-					"current_tier":        wc["current_tier"],
-					"failure_count":       wc["failure_count"],
-					"last_recovery_time":  wc["last_recovery_time"],
-					"last_recovery_tier":  wc["last_recovery_tier"],
-					"total_recoveries":    wc["total_recoveries"],
-					"cooldown_remaining":  wc["cooldown_remaining"],
-					"reboots_this_hour":   wc["reboots_this_hour"],
+					"enabled":            wc["enabled"],
+					"state":              wc["state"],
+					"current_tier":       wc["current_tier"],
+					"failure_count":      wc["failure_count"],
+					"last_recovery_time": wc["last_recovery_time"],
+					"last_recovery_tier": wc["last_recovery_tier"],
+					"total_recoveries":   wc["total_recoveries"],
+					"cooldown_remaining": wc["cooldown_remaining"],
+					"reboots_this_hour":  wc["reboots_this_hour"],
 				}
 			}
 			payload, _ := json.Marshal(status)

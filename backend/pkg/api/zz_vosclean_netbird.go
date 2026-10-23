@@ -28,6 +28,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"qmanager-backend/pkg/wg"
 	"regexp"
 	"strings"
 	"time"
@@ -412,7 +413,7 @@ func (s *Server) HandleNetBird(w http.ResponseWriter, r *http.Request) {
 	case "install_status":
 		reply(nbInstall.snapshot())
 	case "start_service":
-		if notInstalled() {
+		if notInstalled() || wgBlocksNetBird(reply) {
 			return
 		}
 		if err := nbStartDaemon(); err != nil {
@@ -424,7 +425,7 @@ func (s *Server) HandleNetBird(w http.ResponseWriter, r *http.Request) {
 		nbStopDaemon()
 		reply(map[string]any{"success": true})
 	case "connect":
-		if notInstalled() {
+		if notInstalled() || wgBlocksNetBird(reply) {
 			return
 		}
 		key, _ := body["setup_key"].(string)
@@ -480,4 +481,15 @@ func (s *Server) HandleNetBird(w http.ResponseWriter, r *http.Request) {
 	default:
 		reply(map[string]any{"success": false, "error": "unknown_action", "detail": action})
 	}
+}
+
+// wgBlocksNetBird refuses to start NetBird while a WireGuard config is
+// connected: both change the stick's routing.
+func wgBlocksNetBird(reply func(any)) bool {
+	if a := wg.Active(); a != "" {
+		reply(map[string]any{"success": false, "error": "wireguard_active",
+			"detail": "The WireGuard config " + a + " is connected. Disconnect it on the WireGuard page first: both change the stick's routing."})
+		return true
+	}
+	return false
 }

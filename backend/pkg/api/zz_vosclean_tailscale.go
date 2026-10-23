@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"qmanager-backend/pkg/wg"
 	"strings"
 	"sync"
 	"syscall"
@@ -535,6 +536,10 @@ func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
 	}
 	switch body.Action {
 	case "connect":
+		if n := wg.ActiveCGNATConfig(); n != "" {
+			bad("wireguard_active", nil, "The WireGuard config "+n+" is connected and uses 100.64.0.0/10, the range Tailscale uses. Disconnect it on the WireGuard page first.")
+			return
+		}
 		out, err := tsUp()
 		if err != nil {
 			bad("connect_failed", err, out)
@@ -555,6 +560,10 @@ func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
 		}
 		ok(nil)
 	case "start_service":
+		if n := wg.ActiveCGNATConfig(); n != "" {
+			bad("wireguard_active", nil, "The WireGuard config "+n+" is connected and uses 100.64.0.0/10, the range Tailscale uses. Disconnect it on the WireGuard page first.")
+			return
+		}
 		if err := tsStartDaemon(); err != nil {
 			bad("start_failed", err, "")
 			return

@@ -38,8 +38,11 @@ func (s *Server) HandleSystemReboot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Action == "reconnect" {
-		_, _ = s.atClient.Exec("AT+COPS=2")
-		_, _ = s.atClient.Exec("AT+COPS=0")
+		// vosclean: radio off/on instead of COPS=2/0 (a no-op on this modem).
+		if err := s.vosReconnectRadio(); err != nil {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "reconnect_failed", "detail": err.Error()})
+			return
+		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"detail":  "Network reconnect initiated",
@@ -62,9 +65,7 @@ func (s *Server) HandleSystemReboot(w http.ResponseWriter, r *http.Request) {
 		"detail":  "Device rebooting...",
 	})
 
-	go func() {
-		_ = exec.Command("reboot").Run()
-	}()
+	vosRebootSoon(w) // after the response is flushed
 }
 
 // HandleIPAOffload reads/toggles IPA hardware packet offload.

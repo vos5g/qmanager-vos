@@ -1053,7 +1053,7 @@ func (s *Server) HandleChangeDashboardPassword(w http.ResponseWriter, r *http.Re
 // -----------------------------------------------------------------------------
 // Modem network reconnect (at_cmd/reconnect_modem.sh)
 // FE contract (use-modem-reconnect.ts): POST {} -> {success, detail}
-// Same flow as HandleSystemReboot's reconnect branch: AT+COPS=2 then AT+COPS=0.
+// vosclean: radio off/on (AT+CFUN=0, then AT+CFUN=1), see zz_vosclean_power.go.
 // -----------------------------------------------------------------------------
 
 func (s *Server) HandleReconnectModem(w http.ResponseWriter, r *http.Request) {
@@ -1064,8 +1064,11 @@ func (s *Server) HandleReconnectModem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = s.atClient.Exec("AT+COPS=2")
-	_, _ = s.atClient.Exec("AT+COPS=0")
+	// vosclean: radio off/on instead of COPS=2/0 (a no-op on this modem).
+	if err := s.vosReconnectRadio(); err != nil {
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "reconnect_failed", "detail": err.Error()})
+		return
+	}
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"success": true,
 		"detail":  "Network reconnect initiated",

@@ -1,8 +1,8 @@
 name: Discord Release Notification
 
 on:
-  release:
-    types: [published]
+  # vos fork: upstream posts its releases to its own Discord; run manually only
+  workflow_dispatch:
 
 jobs:
   notify-discord:

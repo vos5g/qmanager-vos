@@ -37,6 +37,7 @@ import {
   Stethoscope,
   SquareTerminal,
 } from "lucide-react";
+import { visibleTabs } from "@/constants/vos-features";
 
 export type SectionType = "cellular" | "monitoring" | "local-network" | "system-settings";
 
@@ -93,7 +94,7 @@ const SECTION_NAV_DATA: Record<SectionType, SubNavItem[]> = {
 
 export function LayoutSubNav({ section }: { section: SectionType }) {
   const pathname = usePathname();
-  const items = SECTION_NAV_DATA[section] || [];
+  const items = visibleTabs(SECTION_NAV_DATA[section] || []);
 
   return (
     <div className="relative mb-6 -mx-1 sm:mx-0">

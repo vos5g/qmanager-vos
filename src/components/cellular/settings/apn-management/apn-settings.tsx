@@ -11,6 +11,7 @@ import { useSimProfiles } from "@/hooks/use-sim-profiles";
 import { ProfileOverrideAlert } from "@/components/cellular/custom-profiles/profile-override-alert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { VOS_FEATURES } from "@/constants/vos-features";
 // =============================================================================
 // APNSettingsComponent — APN Settings page coordinator (single-APN model)
 // =============================================================================
@@ -60,7 +61,7 @@ const APNSettingsComponent = () => {
     // Only fetch once the profile list has settled and there is an active
     // profile to inspect. Until then the verdict stays "undetermined" (derived
     // below) so the UI holds its skeleton rather than exposing live controls.
-    if (simLoading || !activeProfileId) return;
+    if (!VOS_FEATURES.simProfiles || simLoading || !activeProfileId) return;
     let cancelled = false;
     (async () => {
       const profile = await getProfile(activeProfileId);
@@ -76,16 +77,20 @@ const APNSettingsComponent = () => {
       cancelled = true;
     };
   }, [activeProfileId, simLoading, getProfile]);
+  // SIM profiles do nothing on the VOS stick yet, so they never own the APN.
   const isProfileControlled =
-    !!activeProfileId && profileOverride?.profileId === activeProfileId;
+    VOS_FEATURES.simProfiles &&
+    !!activeProfileId &&
+    profileOverride?.profileId === activeProfileId;
   // True while we still can't tell whether a profile owns the APN: the list is
   // still loading, or an active profile's APN fetch hasn't resolved yet
   // (`checkedId` lags `activeProfileId`). The interactive cards stay in their
   // loading state and the fieldset stays disabled until this clears, closing
   // the window where every button is live before the override gate engages.
   const overrideUndetermined =
-    simLoading || (!!activeProfileId && checkedId !== activeProfileId);
-  const profileName = isProfileControlled
+    VOS_FEATURES.simProfiles &&
+    (simLoading || (!!activeProfileId && checkedId !== activeProfileId));
+  const profileName = isProfileControlled && profileOverride
     ? profileOverride.name
     : t("core_settings.apn.managed_by_profile_fallback");
   return (
@@ -134,14 +139,17 @@ const APNSettingsComponent = () => {
           onSave={save}
           onDeactivate={deactivate}
         />
-        <MBNCard
-          profiles={mbnProfiles}
-          autoSel={autoSel}
-          isLoading={mbnLoading}
-          isSaving={mbnSaving}
-          onSave={saveMbn}
-          onReboot={rebootDevice}
-        />
+        {/* MBN selection: AT+QMBNCFG returns ERROR on this modem */}
+        {VOS_FEATURES.mbn && (
+          <MBNCard
+            profiles={mbnProfiles}
+            autoSel={autoSel}
+            isLoading={mbnLoading}
+            isSaving={mbnSaving}
+            onSave={saveMbn}
+            onReboot={rebootDevice}
+          />
+        )}
       </fieldset>
     </div>
   );

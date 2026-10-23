@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import type { FailoverState } from "@/types/band-locking";
 import type { CarrierComponent } from "@/types/modem-status";
+import { VOS_FEATURES } from "@/constants/vos-features";
 
 // =============================================================================
 // BandSettingsComponent — Failover Toggle + Active Bands Display
@@ -180,6 +181,9 @@ const BandSettingsComponent = ({
         <div className="grid gap-2">
           <Separator />
 
+          {/* Band failover: no watcher daemon on the VOS stick yet */}
+          {VOS_FEATURES.bandFailover && (
+            <>
           {/* Failover Toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -233,6 +237,8 @@ const BandSettingsComponent = ({
             </div>
           </div>
           <Separator />
+            </>
+          )}
 
           {/* Active LTE Bands */}
           <div className="flex items-center justify-between">

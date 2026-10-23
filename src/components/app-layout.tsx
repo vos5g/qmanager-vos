@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { pageVariants } from "@/lib/motion";
 
@@ -29,12 +29,21 @@ import { useAutoLogout } from "@/hooks/use-auto-logout";
 import { useBootPendingReboot } from "@/hooks/use-boot-pending-reboot";
 import { ReconnectingBanner } from "@/components/reboot/reconnecting-banner";
 import { HeaderStatusPill } from "@/components/header-status-pill";
+import { isRouteHidden, resolveRoute } from "@/constants/vos-features";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const breadcrumbs = useBreadcrumbs();
   const pathname = usePathname();
+  const router = useRouter();
   useAutoLogout();
   useBootPendingReboot();
+
+  // Pages that don't work on the VOS stick are hidden from the menus; a direct
+  // link or bookmark goes to the replacement page (or the dashboard) instead.
+  const hiddenRoute = isRouteHidden(pathname);
+  React.useEffect(() => {
+    if (hiddenRoute) router.replace(resolveRoute(pathname) ?? "/dashboard/");
+  }, [hiddenRoute, pathname, router]);
 
   // Sync cookie check — no API call, no loading state. The redirect runs during
   // render (not in an effect) on purpose: an effect-based redirect would briefly
@@ -118,7 +127,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             animate="enter"
             exit="exit"
           >
-            {children}
+            {hiddenRoute ? null : children}
           </motion.main>
         </AnimatePresence>
       </SidebarInset>

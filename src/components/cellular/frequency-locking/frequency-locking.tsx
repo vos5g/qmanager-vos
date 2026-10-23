@@ -7,6 +7,7 @@ import LteFreqLockingComponent from "./lte-freq-locking";
 import NrFreqLockingComponent from "./nr-freq-locking";
 import { useFrequencyLocking } from "@/hooks/use-frequency-locking";
 import { useModemStatus } from "@/hooks/use-modem-status";
+import { VOS_FEATURES } from "@/constants/vos-features";
 
 const FrequencyLockingComponent = () => {
   const { t } = useTranslation("cellular");
@@ -21,17 +22,20 @@ const FrequencyLockingComponent = () => {
       description={t("cell_locking.frequency_locking.page.description")}
     />
       <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
-        <LteFreqLockingComponent
-          modemState={freqLock.modemState}
-          modemData={modemData}
-          isLoading={freqLock.isLoading}
-          isLocking={freqLock.isLteLocking}
-          error={freqLock.error}
-          towerLockActive={freqLock.towerLockLteActive}
-          onLock={(earfcns) => freqLock.lockLte(earfcns)}
-          onUnlock={() => freqLock.unlockLte()}
-          onRefresh={freqLock.refresh}
-        />
+        {/* LTE EARFCN-only locks: the modem only locks LTE to a cell */}
+        {VOS_FEATURES.lteFrequencyLock && (
+          <LteFreqLockingComponent
+            modemState={freqLock.modemState}
+            modemData={modemData}
+            isLoading={freqLock.isLoading}
+            isLocking={freqLock.isLteLocking}
+            error={freqLock.error}
+            towerLockActive={freqLock.towerLockLteActive}
+            onLock={(earfcns) => freqLock.lockLte(earfcns)}
+            onUnlock={() => freqLock.unlockLte()}
+            onRefresh={freqLock.refresh}
+          />
+        )}
         <NrFreqLockingComponent
           modemState={freqLock.modemState}
           modemData={modemData}

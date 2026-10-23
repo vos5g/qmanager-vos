@@ -43,6 +43,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { visibleNav } from "@/constants/vos-features";
 
 // t_key values are keys inside the "sidebar" namespace's "items" object.
 const data = {
@@ -218,6 +219,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       : item,
   );
 
+  // Pages that don't work on the VOS stick are left out (constants/vos-features).
+  const nav = React.useMemo(
+    () => ({
+      cellular: visibleNav(data.cellular),
+      localNetwork: visibleNav(data.localNetwork),
+      monitoring: visibleNav(data.monitoring),
+      system: visibleNav(data.system),
+    }),
+    [],
+  );
+
   // Flat menu registry for the search palette (skips the donate button).
   const menuItems: MenuItem[] = React.useMemo(() => {
     type NavGroup = {
@@ -228,10 +240,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
     const groups: NavGroup[][] = [
       data.navMain as NavGroup[],
-      data.cellular as NavGroup[],
-      data.localNetwork as NavGroup[],
-      data.monitoring as NavGroup[],
-      data.system as NavGroup[],
+      nav.cellular as NavGroup[],
+      nav.localNetwork as NavGroup[],
+      nav.monitoring as NavGroup[],
+      nav.system as NavGroup[],
       data.navSecondary
         .filter((i) => i.t_key !== "donate")
         .map((i) => ({ t_key: i.t_key, url: i.url })) as NavGroup[],
@@ -246,7 +258,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
     }
     return flat;
-  }, []);
+  }, [nav]);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -256,10 +268,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavCellular cellular={data.cellular} />
-        <NavLocalNetwork localNetwork={data.localNetwork} />
-        <NavMonitoring monitoring={data.monitoring} />
-        <NavSystem system={data.system} />
+        <NavCellular cellular={nav.cellular} />
+        <NavLocalNetwork localNetwork={nav.localNetwork} />
+        <NavMonitoring monitoring={nav.monitoring} />
+        <NavSystem system={nav.system} />
         <NavSecondary items={navSecondaryItems} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

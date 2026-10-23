@@ -11,6 +11,7 @@ import LTELockingComponent from "./lte-locking";
 import NRSALockingComponent from "./nr-sa-locking";
 import { useTowerLocking } from "@/hooks/use-tower-locking";
 import { useModemStatus } from "@/hooks/use-modem-status";
+import { VOS_FEATURES } from "@/constants/vos-features";
 
 const TowerLockingComponent = () => {
   const { t } = useTranslation("cellular");
@@ -28,41 +29,75 @@ const TowerLockingComponent = () => {
       title={t("cell_locking.tower_locking.page.title")}
       description={t("cell_locking.tower_locking.page.description")}
     />
-      <div className="grid grid-cols-1 gap-4">
+      {VOS_FEATURES.towerLockExtras ? (
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
+            <TowerLockingSettingsComponent
+              config={tower.config}
+              failoverState={tower.failoverState}
+              modemData={modemData}
+              isLoading={tower.isLoading}
+              onPersistChange={(persist) => {
+                if (!tower.config) {
+                  toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
+                  return;
+                }
+                tower.updateSettings(persist, failoverConfig);
+              }}
+              onFailoverChange={(enabled) => {
+                if (!tower.config) {
+                  toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
+                  return;
+                }
+                tower.updateSettings(tower.config.persist, {
+                  ...failoverConfig,
+                  enabled,
+                });
+              }}
+              onThresholdChange={async (threshold) => {
+                if (!tower.config) {
+                  toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
+                  return false;
+                }
+                return tower.updateSettings(tower.config.persist, {
+                  ...failoverConfig,
+                  threshold,
+                });
+              }}
+            />
+            <LTELockingComponent
+              config={tower.config}
+              modemState={tower.modemState}
+              modemData={modemData}
+              isLoading={tower.isLoading}
+              isLocking={tower.isLteLocking}
+              isWatcherRunning={tower.isWatcherRunning}
+              onLock={(cells) => tower.lockLte(cells)}
+              onUnlock={() => tower.unlockLte()}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
+            <ScheduleTowerLockingComponent
+              config={tower.config}
+              onScheduleChange={(schedule) => tower.updateSchedule(schedule)}
+            />
+            <NRSALockingComponent
+              config={tower.config}
+              modemState={tower.modemState}
+              modemData={modemData}
+              networkType={modemData?.network?.type ?? ""}
+              isLoading={tower.isLoading}
+              isLocking={tower.isNrLocking}
+              isWatcherRunning={tower.isWatcherRunning}
+              onLock={(cell) => tower.lockNrSa(cell)}
+              onUnlock={() => tower.unlockNrSa()}
+            />
+          </div>
+        </div>
+      ) : (
+        // Failover, persistence and the schedule are stubs on the VOS stick.
         <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
-          <TowerLockingSettingsComponent
-            config={tower.config}
-            failoverState={tower.failoverState}
-            modemData={modemData}
-            isLoading={tower.isLoading}
-            onPersistChange={(persist) => {
-              if (!tower.config) {
-                toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
-                return;
-              }
-              tower.updateSettings(persist, failoverConfig);
-            }}
-            onFailoverChange={(enabled) => {
-              if (!tower.config) {
-                toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
-                return;
-              }
-              tower.updateSettings(tower.config.persist, {
-                ...failoverConfig,
-                enabled,
-              });
-            }}
-            onThresholdChange={async (threshold) => {
-              if (!tower.config) {
-                toast.error(t("cell_locking.tower_locking.settings.settings_unavailable_toast"));
-                return false;
-              }
-              return tower.updateSettings(tower.config.persist, {
-                ...failoverConfig,
-                threshold,
-              });
-            }}
-          />
           <LTELockingComponent
             config={tower.config}
             modemState={tower.modemState}
@@ -72,13 +107,6 @@ const TowerLockingComponent = () => {
             isWatcherRunning={tower.isWatcherRunning}
             onLock={(cells) => tower.lockLte(cells)}
             onUnlock={() => tower.unlockLte()}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
-          <ScheduleTowerLockingComponent
-            config={tower.config}
-            onScheduleChange={(schedule) => tower.updateSchedule(schedule)}
           />
           <NRSALockingComponent
             config={tower.config}
@@ -92,7 +120,7 @@ const TowerLockingComponent = () => {
             onUnlock={() => tower.unlockNrSa()}
           />
         </div>
-      </div>
+      )}
     </div>
   );
 };

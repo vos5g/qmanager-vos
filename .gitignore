@@ -80,3 +80,7 @@ qmanager-core
 qmanager-core-armv7.tar.gz
 qmanager-core.service
 *.deb
+
+# Local build output and IDE files
+/backend/server
+/.idea/

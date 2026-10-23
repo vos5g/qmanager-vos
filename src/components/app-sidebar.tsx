@@ -86,6 +86,7 @@ const data = {
           url: "/system-settings/system-health-check",
         },
         { t_key: "web_console", url: "/system-settings/web-console" },
+        { t_key: "kernel_modules", url: "/system-settings/kernel-modules" },
       ],
     },
     {

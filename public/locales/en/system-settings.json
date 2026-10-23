@@ -703,5 +703,48 @@
     "toast_on": "Web console turned on",
     "toast_off": "Web console turned off",
     "toast_failed": "Couldn't change the web console setting"
+  },
+  "kernel_modules": {
+    "page_title": "Kernel Modules",
+    "page_description": "Extra kernel features for the stick's own kernel, loaded at runtime. Nothing in the signed boot chain changes.",
+    "card_title": "Module groups",
+    "card_description": "Kernel {{kernel}}, {{count}} modules installed. Switching a group on loads it now and at every boot; switching it off unloads it unless something is still using it.",
+    "card_description_loading": "Reading the installed modules…",
+    "refresh": "Refresh",
+    "state_loaded": "Loaded",
+    "state_partial": "Partly loaded",
+    "state_unloaded": "Not loaded",
+    "not_installed": "No modules are installed for this kernel. Build them with the vos5g-kmod repo and upload them with install.sh --modules.",
+    "skipped_boot": "Modules were skipped at the last boot because an earlier load didn't finish (a crash or reset while loading). Switch a group off and on again to retry.",
+    "footer": "TCP congestion control for the stick's own connections: {{cc}}. Built from Qualcomm's public SDX55 kernel source for this exact kernel and tested on the stick; if one ever crashes the stick, the next boot skips all modules.",
+    "log_title": "Recent activity",
+    "log_description": "What vosclean loaded, unloaded or skipped.",
+    "group": {
+      "wireguard": {
+        "title": "Kernel WireGuard",
+        "description": "WireGuard in the kernel instead of in the VPN app. NetBird uses it automatically; Tailscale never does. Measured: about 3× faster when the stick sends into the tunnel (114 vs 36 Mbit/s), but slower when it receives (25–30 vs 48 Mbit/s)."
+      },
+      "ipv6nat": {
+        "title": "IPv6 NAT",
+        "description": "IPv6 NAT, masquerade and redirects (for example IPv6 DNS redirection). Only useful if your plan gives you IPv6."
+      },
+      "bbr": {
+        "title": "BBR congestion control",
+        "description": "BBR for connections the stick makes itself (speed test, VPN relays, QManager). It doesn't change the TCP of devices behind the stick."
+      },
+      "fqcodel": {
+        "title": "fq_codel queueing",
+        "description": "Fair queueing with low latency for traffic the stick's CPU routes (VPN, exit node). Normal USB traffic uses the hardware fast path and isn't affected."
+      },
+      "xtmatch": {
+        "title": "Extra firewall matches",
+        "description": "iptables matches by process owner, text in packets and bytes transferred, for custom firewall rules."
+      }
+    },
+    "toast_on": "{{name}} on",
+    "toast_off": "{{name}} off",
+    "toast_in_use": "{{name}} is switched off but still in use; it unloads at the next reboot.",
+    "toast_not_loaded": "{{name}} is switched on but didn't load. See Recent activity.",
+    "toast_failed": "Couldn't change {{name}}"
   }
 }

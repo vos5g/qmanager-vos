@@ -116,11 +116,7 @@ func kmSetEnabled(en map[string]bool, order [][]string) error {
 	if !done {
 		lines = append(lines, "", "# Extra kernel module groups (set from QManager -> Kernel Modules)", line)
 	}
-	tmp := kmConfPath + ".qm"
-	if err := os.WriteFile(tmp, []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, kmConfPath)
+	return vosWriteFileDurable(kmConfPath, []byte(strings.Join(lines, "\n")+"\n"), 0644)
 }
 
 func kmLoaded() map[string]bool {

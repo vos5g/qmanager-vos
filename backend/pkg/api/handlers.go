@@ -1090,7 +1090,7 @@ func applyCustomDNS(enabled bool, servers ...string) error {
 		flag = "yes"
 	}
 	conf := fmt.Sprintf("# written by QManager - applied by: vosclean dns\nDNS_ENABLE=%s\nDNS_SERVERS=\"%s\"\n", flag, strings.Join(list, " "))
-	if err := os.WriteFile("/data/vosclean/etc/dns.conf", []byte(conf), 0644); err != nil {
+	if err := vosWriteFileDurable("/data/vosclean/etc/dns.conf", []byte(conf), 0644); err != nil {
 		return err
 	}
 	out, err := exec.Command("/data/vosclean/bin/vosclean", "dns").CombinedOutput()

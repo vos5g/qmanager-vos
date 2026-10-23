@@ -914,7 +914,7 @@ func (s *Server) HandleKnownSims(w http.ResponseWriter, r *http.Request) {
 		action, _ := body["action"].(string)
 		if action == "clear" || action == "reset" {
 			sims = []string{}
-			_ = os.WriteFile(path, []byte("[]"), 0600)
+			_ = vosWriteFileDurable(path, []byte("[]"), 0600)
 		}
 	}
 

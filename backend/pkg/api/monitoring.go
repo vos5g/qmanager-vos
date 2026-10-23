@@ -219,7 +219,7 @@ func writeJSONFile(path string, data map[string]any) {
 		return
 	}
 	_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
-	_ = os.WriteFile(path, b, 0600)
+	_ = vosWriteFileDurable(path, b, 0600)
 }
 
 func qmBool(v any) bool {

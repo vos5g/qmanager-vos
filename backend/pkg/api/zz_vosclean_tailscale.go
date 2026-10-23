@@ -405,7 +405,7 @@ func tsDoInstall() {
 		fail("Could not install the binaries", err)
 		return
 	}
-	_ = os.WriteFile(tsBootFlag, []byte("1\n"), 0644)
+	_ = vosWriteFileDurable(tsBootFlag, []byte("1\n"), 0644)
 	tsInstall.set("running", "Starting tailscaled...", "")
 	if err := tsStartDaemon(); err != nil {
 		fail("Installed, but tailscaled did not start", err)
@@ -565,7 +565,7 @@ func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
 		ok(nil)
 	case "set_boot_enabled":
 		if body.Enabled {
-			_ = os.WriteFile(tsBootFlag, []byte("1\n"), 0644)
+			_ = vosWriteFileDurable(tsBootFlag, []byte("1\n"), 0644)
 		} else {
 			_ = os.Remove(tsBootFlag)
 		}
@@ -664,6 +664,6 @@ func tsInstallTiny() error {
 		return err
 	}
 	_ = os.Remove(tsTinyUpload) // the installed copy is the only one kept
-	_ = os.WriteFile(tsBootFlag, []byte("1\n"), 0644)
+	_ = vosWriteFileDurable(tsBootFlag, []byte("1\n"), 0644)
 	return tsStartDaemon()
 }

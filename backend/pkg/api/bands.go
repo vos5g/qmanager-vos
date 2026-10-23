@@ -159,8 +159,8 @@ func (s *Server) HandleBandsFailoverToggle(w http.ResponseWriter, r *http.Reques
 	}
 
 	if isEnabled {
-		_ = os.WriteFile("/data/vosclean/qm/etc/band_failover.enabled", []byte("1\n"), 0644)
-		_ = os.WriteFile("/data/vosclean/qm/etc/band_failover_enabled", []byte("1\n"), 0644)
+		_ = vosWriteFileDurable("/data/vosclean/qm/etc/band_failover.enabled", []byte("1\n"), 0644)
+		_ = vosWriteFileDurable("/data/vosclean/qm/etc/band_failover_enabled", []byte("1\n"), 0644)
 	} else {
 		_ = os.Remove("/data/vosclean/qm/etc/band_failover.enabled")
 		_ = os.Remove("/data/vosclean/qm/etc/band_failover_enabled")

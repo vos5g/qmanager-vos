@@ -65,7 +65,7 @@ func (ss *SessionStore) persist() {
 		return
 	}
 	tmp := ss.filePath + ".tmp"
-	if os.WriteFile(tmp, data, 0600) == nil {
+	if vosWriteFileDurable(tmp, data, 0600) == nil {
 		_ = os.Rename(tmp, ss.filePath)
 	}
 }

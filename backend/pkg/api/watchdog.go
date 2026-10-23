@@ -49,7 +49,7 @@ func qmWriteSection(section string, kv map[string]any) error {
 	}
 	data, _ := json.MarshalIndent(cfg, "", "  ")
 	tmp := qmConfigFile + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
+	if err := vosWriteFileDurable(tmp, data, 0644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, qmConfigFile)

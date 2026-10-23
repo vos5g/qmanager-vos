@@ -61,7 +61,7 @@ func atomicWriteJSON(path string, data map[string]any) error {
 		_ = os.MkdirAll(dir, 0755)
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0600); err != nil {
+	if err := vosWriteFileDurable(tmp, b, 0600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
@@ -321,7 +321,7 @@ func saveCustomScenarios(list []map[string]any) error {
 		return err
 	}
 	tmp := scenariosCustomFile + ".tmp"
-	if err := os.WriteFile(tmp, b, 0600); err != nil {
+	if err := vosWriteFileDurable(tmp, b, 0600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, scenariosCustomFile)
@@ -472,7 +472,7 @@ func (s *Server) HandleScenarioActivate(w http.ResponseWriter, r *http.Request) 
 
 	// Persist the active marker (source of truth for the UI).
 	_ = os.MkdirAll(configBackupDir, 0755)
-	if err := os.WriteFile(activeScenarioFile, []byte(req.ID), 0644); err != nil {
+	if err := vosWriteFileDurable(activeScenarioFile, []byte(req.ID), 0644); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "write_failed", "detail": err.Error()})
 		return
 	}
@@ -1038,7 +1038,7 @@ func (s *Server) HandleChangeDashboardPassword(w http.ResponseWriter, r *http.Re
 	payload, _ := json.MarshalIndent(newAuth, "", "  ")
 
 	tmp := authConfigPath + ".tmp"
-	if err := os.WriteFile(tmp, payload, 0600); err != nil {
+	if err := vosWriteFileDurable(tmp, payload, 0600); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "write_failed"})
 		return
 	}

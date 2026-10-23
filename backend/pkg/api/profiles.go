@@ -218,7 +218,7 @@ func (s *Server) HandleProfilesSave(w http.ResponseWriter, r *http.Request) {
 
 	_ = os.MkdirAll(profilesDir, 0755)
 	data, _ := json.MarshalIndent(p, "", "  ")
-	if err := os.WriteFile(profileFilePath(p.ID), data, 0644); err != nil {
+	if err := vosWriteFileDurable(profileFilePath(p.ID), data, 0644); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "write_failed", "detail": err.Error()})
 		return
 	}
@@ -286,7 +286,7 @@ func (s *Server) HandleProfilesApply(w http.ResponseWriter, r *http.Request) {
 
 	// Persist active profile marker
 	_ = os.MkdirAll("/data/vosclean/qm/etc", 0755)
-	if err := os.WriteFile(activeProfileFile, []byte(req.ID), 0644); err != nil {
+	if err := vosWriteFileDurable(activeProfileFile, []byte(req.ID), 0644); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "write_failed"})
 		return
 	}

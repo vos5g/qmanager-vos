@@ -130,7 +130,7 @@ func (s *Server) HandleWebConsoleSettings(w http.ResponseWriter, r *http.Request
 		}
 		var err error
 		if body.Enabled {
-			err = os.WriteFile(consoleFlag, []byte("1\n"), 0600)
+			err = vosWriteFileDurable(consoleFlag, []byte("1\n"), 0600)
 		} else {
 			err = os.Remove(consoleFlag)
 			if os.IsNotExist(err) {

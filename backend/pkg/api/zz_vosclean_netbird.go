@@ -457,7 +457,7 @@ func (s *Server) HandleNetBird(w http.ResponseWriter, r *http.Request) {
 		v, _ := body["enabled"].(bool)
 		var err error
 		if v {
-			err = os.WriteFile(nbBootFlag, []byte("1\n"), 0644)
+			err = vosWriteFileDurable(nbBootFlag, []byte("1\n"), 0644)
 		} else if err = os.Remove(nbBootFlag); os.IsNotExist(err) {
 			err = nil
 		}

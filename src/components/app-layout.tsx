@@ -29,6 +29,7 @@ import { useAutoLogout } from "@/hooks/use-auto-logout";
 import { useBootPendingReboot } from "@/hooks/use-boot-pending-reboot";
 import { ReconnectingBanner } from "@/components/reboot/reconnecting-banner";
 import { HeaderStatusPill } from "@/components/header-status-pill";
+import { DevicePowerMenu } from "@/components/device-power-menu";
 import { isRouteHidden, resolveRoute } from "@/constants/vos-features";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -110,7 +111,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Command Strip Header Actions */}
-          <HeaderStatusPill />
+          <div className="flex items-center gap-1.5">
+            <HeaderStatusPill />
+            <DevicePowerMenu />
+          </div>
         </header>
 
         <SimSwapBanner />

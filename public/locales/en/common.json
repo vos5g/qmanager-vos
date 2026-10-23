@@ -169,5 +169,21 @@
     "toast_on": "Live data enabled — polling resumed",
     "toast_off": "Live data paused — polling stopped (saves CPU)",
     "toast_error": "Could not save Live data preference"
+  },
+  "power": {
+    "menu_label": "Device power",
+    "reconnect": "Reconnect to network",
+    "reconnect_hint": "Radio off and on, about 15 s offline",
+    "restart": "Restart stick",
+    "restart_hint": "About a minute offline",
+    "reconnect_title": "Reconnect to the mobile network?",
+    "reconnect_description": "The stick turns its radio off and on, like flight mode. Devices behind it lose internet for about 15 seconds, and the stick usually gets a new IP address.",
+    "reconnect_confirm": "Reconnect",
+    "reconnect_done": "Reconnected. The connection comes back in a few seconds.",
+    "reconnect_failed": "Couldn't reconnect",
+    "restart_title": "Restart the stick?",
+    "restart_description": "Everything on the stick restarts. Devices behind it lose internet for about a minute, and you'll need to sign in again.",
+    "restart_confirm": "Restart",
+    "restart_sent": "Restarting. You'll be signed out shortly…"
   }
 }

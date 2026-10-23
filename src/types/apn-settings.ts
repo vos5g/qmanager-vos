@@ -9,7 +9,7 @@
 //   CGI endpoint: /cgi-bin/quecmanager/cellular/apn.sh
 //
 //   GET  returns active, active_cid, internet_cid, apn (stored setting), cids[]
-//   POST save:       { action:"save", apn, pdp_type, cid } → writes + COPS cycle
+//   POST save:       { action:"save", apn, pdp_type, cid, [auth_type, username, password] }
 //   POST deactivate: { action:"deactivate" }               → carrier default, active=0
 // =============================================================================
 
@@ -26,6 +26,12 @@ export interface ApnSetting {
   pdp_type: string;
   /** Target modem PDP context (1-6). */
   cid: number;
+  /** Authentication: 0 none, 1 PAP, 2 CHAP, 3 PAP or CHAP (absent if unknown). */
+  auth_type?: number;
+  /** APN username ("" if none). */
+  username?: string;
+  /** Whether a password is stored. The password itself is never returned. */
+  has_password?: boolean;
 }
 
 /** A live modem PDP context — drives the CID picker badges and confirmation. */
@@ -63,6 +69,7 @@ export interface ApnSaveResponse {
   success: boolean;
   active?: number;
   error?: string;
+  detail?: string;
 }
 
 // --- API Request Types -------------------------------------------------------
@@ -75,6 +82,12 @@ export interface ApnSaveRequest {
   pdp_type: string;
   /** Target modem PDP context (1-6). */
   cid: number;
+  /** Authentication: 0 none, 1 PAP, 2 CHAP, 3 PAP or CHAP. Omit to keep the
+   *  stored credentials untouched. */
+  auth_type?: number;
+  username?: string;
+  /** Omit to keep the stored password; "" clears it. */
+  password?: string;
 }
 
 // --- Display Helpers ---------------------------------------------------------
@@ -84,4 +97,12 @@ export const PDP_TYPE_OPTIONS = [
   { value: "ipv4", label: "IPv4" },
   { value: "ipv6", label: "IPv6" },
   { value: "ipv4v6", label: "IPv4v6" },
+] as const;
+
+/** APN authentication options (values are the modem's numbering). */
+export const AUTH_TYPE_OPTIONS = [
+  { value: "0", key: "none" },
+  { value: "1", key: "pap" },
+  { value: "2", key: "chap" },
+  { value: "3", key: "pap_or_chap" },
 ] as const;

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import {
   Field,
+  FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldSet,
@@ -48,7 +49,7 @@ import {
 } from "lucide-react";
 
 import type { ApnSetting, CidContext, ApnSaveRequest } from "@/types/apn-settings";
-import { PDP_TYPE_OPTIONS } from "@/types/apn-settings";
+import { AUTH_TYPE_OPTIONS, PDP_TYPE_OPTIONS } from "@/types/apn-settings";
 
 // =============================================================================
 // Props
@@ -240,8 +241,13 @@ export default function ApnSettingsCard({
 
   // --- Form state (seeded from `apn`; reset when hook data arrives) ---
   const [apnValue, setApnValue] = useState(apn?.apn ?? "");
-  const [pdpType, setPdpType] = useState(apn?.pdp_type ?? "ipv4v6");
+  // The backend reports PDP types in upper case (IPV4V6); the options are lower case.
+  const [pdpType, setPdpType] = useState((apn?.pdp_type || "ipv4v6").toLowerCase());
   const [cid, setCid] = useState(String(apn?.cid ?? 1));
+  const [authType, setAuthType] = useState(String(apn?.auth_type ?? 0));
+  const [username, setUsername] = useState(apn?.username ?? "");
+  // Empty means "keep the stored password" when one is set.
+  const [password, setPassword] = useState("");
 
   // Sync form when hook data arrives after initial skeleton
   // Safe: React Compiler only disallows setState-in-effect when reading
@@ -250,9 +256,13 @@ export default function ApnSettingsCard({
   if (!seeded && apn !== null) {
     setSeeded(true);
     setApnValue(apn.apn);
-    setPdpType(apn.pdp_type || "ipv4v6");
+    setPdpType((apn.pdp_type || "ipv4v6").toLowerCase());
     setCid(String(apn.cid));
+    setAuthType(String(apn.auth_type ?? 0));
+    setUsername(apn.username ?? "");
   }
+  const authKnown = apn?.auth_type !== undefined;
+  const usesAuth = authType !== "0";
 
   // --- UI state ---
   const [apnError, setApnError] = useState("");
@@ -297,9 +307,17 @@ export default function ApnSettingsCard({
       pdp_type: pdpType,
       cid: parseInt(cid, 10),
     };
+    if (authKnown) {
+      request.auth_type = parseInt(authType, 10);
+      request.username = usesAuth ? username.trim() : "";
+      // Leave the password out to keep the stored one.
+      if (!usesAuth) request.password = "";
+      else if (password !== "" || !apn?.has_password) request.password = password;
+    }
 
     const success = await onSave(request);
     if (success) {
+      setPassword("");
       markSaved();
       toast.success(t("core_settings.apn.toast.saved"));
     } else {
@@ -429,6 +447,69 @@ export default function ApnSettingsCard({
                   </Select>
                 </Field>
               </div>
+
+              {/* Authentication (username / password) */}
+              {authKnown && (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="apn-auth">
+                      {t("core_settings.apn.edit.fields.auth.label")}
+                    </FieldLabel>
+                    <Select value={authType} onValueChange={setAuthType} disabled={isSaving}>
+                      <SelectTrigger id="apn-auth">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AUTH_TYPE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {t(`core_settings.apn.edit.fields.auth.options.${opt.key}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      {t("core_settings.apn.edit.fields.auth.description")}
+                    </FieldDescription>
+                  </Field>
+                  {usesAuth && (
+                    <div className="grid @md/card:grid-cols-2 grid-cols-1 gap-4">
+                      <Field>
+                        <FieldLabel htmlFor="apn-username">
+                          {t("core_settings.apn.edit.fields.username.label")}
+                        </FieldLabel>
+                        <Input
+                          id="apn-username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          disabled={isSaving}
+                          autoComplete="off"
+                          spellCheck={false}
+                          maxLength={64}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="apn-password">
+                          {t("core_settings.apn.edit.fields.password.label")}
+                        </FieldLabel>
+                        <Input
+                          id="apn-password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          disabled={isSaving}
+                          autoComplete="new-password"
+                          maxLength={64}
+                          placeholder={
+                            apn?.has_password
+                              ? t("core_settings.apn.edit.fields.password.placeholder_keep")
+                              : ""
+                          }
+                        />
+                      </Field>
+                    </div>
+                  )}
+                </>
+              )}
             </FieldGroup>
           </FieldSet>
 

@@ -1476,6 +1476,23 @@
             "for_internet": "Internet",
             "ims_badge": "IMS",
             "sos_badge": "SOS"
+          },
+          "auth": {
+            "label": "Authentication",
+            "description": "Most carriers don't need this. Only set it if your carrier gives you a username and password for the APN.",
+            "options": {
+              "none": "None",
+              "pap": "PAP",
+              "chap": "CHAP",
+              "pap_or_chap": "PAP or CHAP"
+            }
+          },
+          "username": {
+            "label": "Username"
+          },
+          "password": {
+            "label": "Password",
+            "placeholder_keep": "Leave empty to keep"
           }
         },
         "cid_confirm": {

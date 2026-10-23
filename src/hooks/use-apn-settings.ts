@@ -105,7 +105,7 @@ export function useApnSettings(): UseApnSettingsReturn {
     mutationFn: async (request: ApnSaveRequest) => {
       const data = await postAction({ action: "save", ...request });
       if (!data.success) {
-        throw new Error(data.error ?? "Failed to save APN");
+        throw new Error(data.detail ?? data.error ?? "Failed to save APN");
       }
       return request;
     },
@@ -115,7 +115,21 @@ export function useApnSettings(): UseApnSettingsReturn {
         prev
           ? {
               ...prev,
-              apn: request,
+              // Never keep the password in the cache: only whether one is set.
+              apn: {
+                apn: request.apn,
+                pdp_type: request.pdp_type,
+                cid: request.cid,
+                auth_type: request.auth_type ?? prev.apn?.auth_type,
+                username:
+                  request.auth_type === 0 ? "" : (request.username ?? prev.apn?.username),
+                has_password:
+                  request.auth_type === 0
+                    ? false
+                    : request.password !== undefined
+                      ? request.password !== ""
+                      : prev.apn?.has_password,
+              },
               active: 1,
               cids: prev.cids?.map((c) =>
                 c.cid === request.cid ? { ...c, apn: request.apn } : c

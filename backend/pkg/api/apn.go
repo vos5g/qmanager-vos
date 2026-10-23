@@ -20,11 +20,11 @@ type APNProfile struct {
 }
 
 type APNResponse struct {
-	Success    bool         `json:"success"`
-	ActiveCID  int          `json:"active_cid"`
-	Profiles   []APNProfile `json:"profiles"`
+	Success     bool         `json:"success"`
+	ActiveCID   int          `json:"active_cid"`
+	Profiles    []APNProfile `json:"profiles"`
 	MBNAttached string       `json:"mbn_attached,omitempty"`
-	Error      string       `json:"error,omitempty"`
+	Error       string       `json:"error,omitempty"`
 }
 
 type APNSaveRequest struct {
@@ -104,17 +104,26 @@ func (s *Server) HandleAPN(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
+		apnInfo := map[string]interface{}{
+			"apn":      activeApnStr,
+			"pdp_type": activePdpType,
+			"cid":      activeCid,
+		}
+		// vosclean: credentials of the internet profile. The password itself is
+		// never sent to the browser, only whether one is set.
+		if c, ok := s.readAPNAuth(); ok {
+			apnInfo["auth_type"] = c.auth
+			apnInfo["username"] = c.user
+			apnInfo["has_password"] = c.pass != ""
+		}
+
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":      true,
 			"active":       1,
 			"active_cid":   activeCid,
 			"internet_cid": activeCid,
-			"apn": map[string]interface{}{
-				"apn":      activeApnStr,
-				"pdp_type": activePdpType,
-				"cid":      activeCid,
-			},
-			"cids": cids,
+			"apn":          apnInfo,
+			"cids":         cids,
 		})
 		return
 	}
@@ -125,6 +134,11 @@ func (s *Server) HandleAPN(w http.ResponseWriter, r *http.Request) {
 			APN     string `json:"apn"`
 			PDPType string `json:"pdp_type"`
 			CID     int    `json:"cid"`
+			// vosclean: optional credentials. AuthType nil keeps the old
+			// APN-only save; Password nil keeps the stored password.
+			AuthType *int    `json:"auth_type"`
+			Username string  `json:"username"`
+			Password *string `json:"password"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "invalid_json"})
@@ -142,6 +156,11 @@ func (s *Server) HandleAPN(w http.ResponseWriter, r *http.Request) {
 		}
 		if req.PDPType == "" {
 			req.PDPType = "IPV4V6"
+		}
+
+		if req.AuthType != nil {
+			s.saveAPNWithAuth(w, req.CID, req.PDPType, req.APN, *req.AuthType, req.Username, req.Password)
+			return
 		}
 
 		cmd := fmt.Sprintf(`AT+CGDCONT=%d,"%s","%s"`, req.CID, req.PDPType, req.APN)

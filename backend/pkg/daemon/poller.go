@@ -369,6 +369,7 @@ func (p *Poller) pollOnce() {
 			"memory_used_mb":           memUsedMb,
 			"memory_total_mb":          memTotalMb,
 			"uptime_seconds":           uptimeSec,
+			"conn_uptime_seconds":      connUptimeSeconds(wanIp),
 			"firmware":                 firmware,
 			"manufacturer":             manufacturer,
 			"model":                    model,

@@ -157,6 +157,7 @@ func (p *Poller) addHardwareInfo(device map[string]interface{}, now int64) {
 			"sub6_rfc_id": pi.RFCID,
 		}
 	}
+	p.addRadioInfo(device, time.Unix(now, 0))
 	st := p.throttle(time.Unix(now, 0))
 	if st == nil {
 		device["thermal_throttle"] = nil

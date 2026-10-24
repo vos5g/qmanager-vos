@@ -65,6 +65,11 @@
     "throttling_aria": "Show what thermal throttling means",
     "throttling_tooltip": "The modem cuts power or speed when a part gets too hot. Level 0 is full speed; higher levels mean more slowing down.",
     "throttling_none": "None",
+    "tx_power": "Transmit Power",
+    "tx_power_aria": "Show what transmit power reduction means",
+    "tx_power_tooltip": "To limit radio exposure, the stick turns its transmit power down at start-up and for 10 seconds whenever its motion sensor feels it move. Reduced power can slow uploads and weaken the connection at the edge of coverage. Moving or tapping the stick after a restart returns it to full power.",
+    "tx_power_full": "Full",
+    "tx_power_reduced": "Reduced · level {{level}}",
     "throttling_active": "Level {{level}} · {{part}}",
     "throttling_level": "Level {{level}}",
     "throttle_sensor": {
@@ -117,6 +122,12 @@
     "rsrq": "RSRQ",
     "rssi": "RSSI",
     "sinr": "SINR",
+    "nr_on_cell": "5G on This Cell",
+    "nr_on_cell_in_use": "In use",
+    "nr_on_cell_offered": "Offered",
+    "nr_on_cell_not_offered": "Not offered",
+    "nr_on_cell_blocked": "Blocked for this SIM",
+    "nr_on_cell_off_on_device": "Turned off on the stick",
     "scs": "SCS"
   },
   "signal_card": {

@@ -2,7 +2,7 @@
 
 import { useTranslation } from "react-i18next";
 import { SignalStatusCard } from "./signal-status-card";
-import type { LteStatus } from "@/types/modem-status";
+import type { LteStatus, NrAvailability } from "@/types/modem-status";
 import {
   RSRP_THRESHOLDS,
   RSRQ_THRESHOLDS,
@@ -13,9 +13,13 @@ import { getDLFrequency, formatFrequency } from "@/lib/earfcn";
 interface LTEStatusComponentProps {
   data: LteStatus | null;
   isLoading: boolean;
+  /** vosclean: whether the serving LTE cell offers 5G (AT+5GDISP?) */
+  nrAvailability?: NrAvailability | null;
+  /** Current network type ("LTE", "5G-NSA", ...) */
+  networkType?: string;
 }
 
-const LTEStatusComponent = ({ data, isLoading }: LTEStatusComponentProps) => {
+const LTEStatusComponent = ({ data, isLoading, nrAvailability, networkType }: LTEStatusComponentProps) => {
   const { t } = useTranslation("dashboard");
 
   const fmt = (value: number | null | undefined, unit: string) => {
@@ -53,6 +57,13 @@ const LTEStatusComponent = ({ data, isLoading }: LTEStatusComponentProps) => {
       rawValue: data?.sinr,
       thresholds: SINR_THRESHOLDS,
     },
+    // vosclean: does this cell offer 5G? (answers "why am I on LTE only?")
+    ...(nrAvailability
+      ? [{
+          label: t("signal_status.nr_on_cell"),
+          value: t(`signal_status.nr_on_cell_${nrOnCell(nrAvailability, networkType)}`),
+        }]
+      : []),
   ];
 
   return (
@@ -65,5 +76,13 @@ const LTEStatusComponent = ({ data, isLoading }: LTEStatusComponentProps) => {
     />
   );
 };
+
+/** Why 5G is or isn't available on the serving LTE cell. */
+export function nrOnCell(na: NrAvailability, networkType?: string): string {
+  if (networkType === "5G-NSA") return "in_use";
+  if (!na.endc_enabled) return "off_on_device";
+  if (na.restrict_dcnr) return "blocked";
+  return na.upper_layer_ind ? "offered" : "not_offered";
+}
 
 export default LTEStatusComponent;

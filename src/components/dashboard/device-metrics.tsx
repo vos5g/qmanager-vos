@@ -326,6 +326,7 @@ const DeviceMetricsComponent = ({
   const unitPrefs = useUnitPreferences();
   const temp = deviceData?.temperature ?? null;
   const throttle = deviceData?.thermal_throttle ?? null;
+  const sar = deviceData?.sar ?? null;
   const mmwFitted = deviceData?.mmwave?.fitted ?? false;
   const sensorName = (name: string) =>
     name.startsWith("mmw")
@@ -457,6 +458,41 @@ const DeviceMetricsComponent = ({
                   <Badge variant="outline" className="border-success/30 bg-success/15 text-success">
                     <TbCircleCheckFilled className="size-3" />
                     {t("metrics.throttling_none")}
+                  </Badge>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Transmit power / SAR reduction (vosclean, AT+CEISAR?) */}
+          {sar && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-muted-foreground text-sm">
+                    {t("metrics.tx_power")}
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex" aria-label={t("metrics.tx_power_aria")}>
+                        <TbInfoCircleFilled className="size-3 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72">
+                      <p>{t("metrics.tx_power_tooltip")}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                {sar.level > 0 ? (
+                  <Badge variant="outline" className="border-warning/30 bg-warning/15 text-warning">
+                    <TbAlertTriangleFilled className="size-3" />
+                    {t("metrics.tx_power_reduced", { level: sar.level })}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-success/30 bg-success/15 text-success">
+                    <TbCircleCheckFilled className="size-3" />
+                    {t("metrics.tx_power_full")}
                   </Badge>
                 )}
               </div>

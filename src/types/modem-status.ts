@@ -207,6 +207,18 @@ export interface NrStatus {
   ta: number | null;
 }
 
+/** vosclean: AT+5GDISP? — does the serving LTE cell offer 5G (NSA)? */
+export interface NrAvailability {
+  /** The LTE cell broadcasts that 5G is available (upperLayerIndication) */
+  upper_layer_ind: boolean;
+  /** The network blocks 5G dual connectivity for this SIM */
+  restrict_dcnr: boolean;
+  /** 5G NSA (EN-DC) is allowed by the modem's settings */
+  endc_enabled: boolean;
+  /** Serving network as the modem names it, e.g. "LTE" */
+  serving: string;
+}
+
 export interface ThermalThrottle {
   /** Highest level among the sensors that count (0 = not throttling) */
   level: number;
@@ -227,6 +239,13 @@ export interface DeviceStatus {
    * modem has answered. mmWave sensors don't count while mmWave isn't fitted.
    */
   thermal_throttle?: ThermalThrottle | null;
+  /**
+   * vosclean: SAR (body-exposure) transmit-power reduction, AT+CEISAR?.
+   * 0 = full power. The dongle sets 3 at boot and 4 for 10 s after movement.
+   */
+  sar?: { level: number } | null;
+  /** vosclean: whether the serving LTE cell offers 5G (AT+5GDISP?) */
+  nr_availability?: NrAvailability | null;
   /** vosclean: module SKU from AT+PRODUCTINFO, e.g. "RXM-G1 BR23" */
   module_sku?: string;
   /** vosclean: module hardware revision from AT+PRODUCTINFO */

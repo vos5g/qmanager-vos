@@ -72,6 +72,8 @@ const HomeComponent = () => {
               <LTEStatusComponent
                 data={data?.lte ?? null}
                 isLoading={isLoading}
+                nrAvailability={data?.device?.nr_availability ?? null}
+                networkType={networkType}
               />
             </motion.div>
           )}

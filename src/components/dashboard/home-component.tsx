@@ -17,6 +17,7 @@ import RecentActivitiesComponent from "./recent-activities";
 import DeviceMetricsComponent from "./device-metrics";
 import LiveLatencyComponent from "./live-latency";
 import { StorageCard } from "./storage-card";
+import { DataUsageCard } from "./data-usage-card";
 import { CockpitHero } from "./cockpit-hero";
 
 
@@ -137,6 +138,9 @@ const HomeComponent = () => {
           </motion.div>
           <motion.div variants={itemVariants} className="h-full *:data-[slot=card]:h-full">
             <RecentActivitiesComponent />
+          </motion.div>
+          <motion.div variants={itemVariants} className="h-full *:data-[slot=card]:h-full">
+            <DataUsageCard />
           </motion.div>
         </motion.div>
       </div>

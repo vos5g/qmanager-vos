@@ -3,6 +3,7 @@
     "network_mode": "Mode Change",
     "band_change": "Band Change",
     "thermal_throttle": "Thermal Throttling",
+    "data_usage": "Data Usage",
     "pci_change": "Cell Handoff",
     "scc_pci_change": "Secondary Band Change",
     "ca_change": "Carrier Aggregation",

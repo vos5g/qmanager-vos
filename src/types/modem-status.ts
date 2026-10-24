@@ -176,6 +176,20 @@ export interface LteStatus {
   rssi: number | null;
   /** Timing Advance index (0–1282). Used for cell distance estimation. */
   ta: number | null;
+  /** vosclean (AT+BINFO): current transmit power in dBm (the maximum is about 23) */
+  tx_power?: number | null;
+  /** vosclean: uplink modulation, e.g. "16QAM" */
+  ul_modulation?: string;
+  /** vosclean: downlink modulation of the first layer, e.g. "64QAM" */
+  dl_modulation?: string;
+  /** vosclean: downlink layers in use now (MIMO rank) */
+  dl_layers?: number;
+  /** vosclean: downlink layers the network configured */
+  dl_conf_layers?: number;
+  /** vosclean: channel quality indicator, 0-15 */
+  cqi?: number | null;
+  /** vosclean: receive chains with a signal (of 4) */
+  rx_chains?: number;
 }
 
 export interface NrStatus {
@@ -748,7 +762,8 @@ export type NetworkEventType =
   | "config_restore_section_skipped" // Single section skipped (incompatible or sim_mismatch)
   | "config_restore_completed" // Configuration restore completed
   | "lan_address_changed" // LAN IP address / subnet changed by user
-  | "thermal_throttle"; // vosclean: modem thermal throttling started, rose or ended
+  | "thermal_throttle" // vosclean: modem thermal throttling started, rose or ended
+  | "data_usage"; // vosclean: monthly allowance warning
 
 /** Severity level for UI icon coloring */
 export type EventSeverity = "info" | "warning" | "error";

@@ -57,6 +57,32 @@ const LTEStatusComponent = ({ data, isLoading, nrAvailability, networkType }: LT
       rawValue: data?.sinr,
       thresholds: SINR_THRESHOLDS,
     },
+    // vosclean (AT+BINFO): what the link is doing, which explains speed
+    // better than signal strength alone
+    ...(data?.ul_modulation || data?.tx_power != null
+      ? [{
+          label: t("signal_status.uplink"),
+          value: [data?.ul_modulation, data?.tx_power != null ? `${data.tx_power} dBm` : ""]
+            .filter(Boolean)
+            .join(" · ") || "-",
+        }]
+      : []),
+    ...(data?.dl_modulation || data?.dl_layers
+      ? [{
+          label: t("signal_status.downlink"),
+          value: [
+            data?.dl_modulation,
+            data?.dl_layers
+              ? t("signal_status.layers", { n: data.dl_layers, of: data.dl_conf_layers || data.dl_layers })
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" · ") || "-",
+        }]
+      : []),
+    ...(data?.cqi != null
+      ? [{ label: t("signal_status.cqi"), value: `${data.cqi} / 15` }]
+      : []),
     // vosclean: does this cell offer 5G? (answers "why am I on LTE only?")
     ...(nrAvailability
       ? [{

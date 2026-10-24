@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { TbInfoCircleFilled } from "react-icons/tb";
 import { cn } from "@/lib/utils";
+import { VOS_FEATURES } from "@/constants/vos-features";
 import { PING_PROFILES } from "@/types/modem-status";
 import type { WatchdogQualityThresholds } from "@/hooks/use-watchdog-settings";
 import { toast } from "sonner";
@@ -191,7 +192,9 @@ export function WatchdogSettingsCard({
           className="min-h-0 flex-1"
         >
           <TabsList className="w-full">
-            {(["detection", "quality", "recovery"] as const).map((tk) => (
+            {(["detection", "quality", "recovery"] as const)
+              .filter((tk) => tk !== "quality" || VOS_FEATURES.watchdogQuality)
+              .map((tk) => (
               <TabsTrigger key={tk} value={tk} className="gap-1.5">
                 {t(`watchdog.tab_${tk}`)}
                 {tabErrors[tk] && (
@@ -521,6 +524,8 @@ export function WatchdogSettingsCard({
             value="recovery"
             className="mt-5 animate-in fade-in-0 duration-200 motion-reduce:animate-none"
           >
+            {VOS_FEATURES.watchdogSsr && (
+            <>
             {/* Step zero — wait out a recoverable baseband restart before the
                 ladder may act. A precondition, not a rung. */}
             <div className="mb-6 rounded-lg border bg-muted/20 p-4">
@@ -590,6 +595,8 @@ export function WatchdogSettingsCard({
                 </div>
               )}
             </div>
+            </>
+            )}
 
             <ol>
               {/* Tier 1 — Network re-registration */}
@@ -598,7 +605,7 @@ export function WatchdogSettingsCard({
                 icon={<RefreshCwIcon className="size-4" />}
                 name={t("watchdog.tier_1_name")}
                 description={t("watchdog.tier_1_description")}
-                atCommand="AT+COPS=2 → AT+COPS=0"
+                atCommand={VOS_FEATURES.simFailover ? "AT+COPS=2 → AT+COPS=0" : "cricli backhaul_disconnect → connect"}
                 enabled={form.tier1Enabled}
                 onToggle={(v) => {
                   form.setTier1Enabled(v);
@@ -626,10 +633,12 @@ export function WatchdogSettingsCard({
                   );
                 }}
                 masterOff={masterOff}
-                info={t("watchdog.tier_2_tooltip")}
+                info={VOS_FEATURES.towerLockExtras ? t("watchdog.tier_2_tooltip") : undefined}
                 infoAria={t("watchdog.tier_2_more_info_aria")}
               />
 
+              {VOS_FEATURES.simFailover && (
+              <>
               {/* Tier 3 — SIM failover (backup slot lives here) */}
               <LadderStep
                 index={3}
@@ -775,13 +784,15 @@ export function WatchdogSettingsCard({
                 )}
               </LadderStep>
 
+              </>
+              )}
               {/* Tier 4 — Reboot (reboot cap lives here) */}
               <LadderStep
-                index={4}
+                index={VOS_FEATURES.simFailover ? 4 : 3}
                 icon={<PowerIcon className="size-4" />}
                 name={t("watchdog.tier_4_name")}
                 description={t("watchdog.tier_4_description")}
-                atCommand="reboot"
+                atCommand={VOS_FEATURES.simFailover ? "reboot" : "systemctl reboot"}
                 tone="caution"
                 enabled={form.tier4Enabled}
                 onToggle={(v) => {

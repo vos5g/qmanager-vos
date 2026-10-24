@@ -46,7 +46,8 @@ The full upstream history is kept, with the VOS changes as separate commits on t
 
 | Area | On the VOS 5G |
 |---|---|
-| Dashboard | Operator, network type, signal (RSRP/RSRQ/SINR), per-carrier details, temperatures, CPU and memory, live traffic, latency and RTT, recent events, connection uptime |
+| Dashboard | Operator, network type, signal (RSRP/RSRQ/SINR), per-carrier details, uplink and downlink modulation, transmit power, CQI and real MIMO layers, whether the cell offers 5G, temperatures, thermal throttling, transmit-power reduction, CPU and memory, live traffic, latency and RTT, recent events, connection uptime, module and mmWave details |
+| Data usage | Monthly total from the modem's own counters (offloaded traffic included), daily bars, billing day, allowance with warnings |
 | Cellular Information | Cell ID, TAC, PCI, ARFCN, band and bandwidth, carrier aggregation, APN, WAN IP, carrier DNS, LTE cell distance (timing advance) |
 | Antenna statistics / alignment | Per-receive-chain RSRP/RSRQ/SINR (4×4 on n78) |
 | Band locking | LTE, NR5G-NSA and NR5G-SA band masks, plus restore to factory |
@@ -54,7 +55,9 @@ The full upstream history is kept, with the VOS changes as separate commits on t
 | Cell scanner | Serving cell plus LTE neighbours of your carrier (read over QMI), frequency calculator |
 | Connection scenarios | Network mode (Auto, LTE only, 5G only, LTE+5G) and band sets in one click |
 | APN | View and change |
-| SMS | Inbox, send, delete. On 5G SA, sending switches to LTE and back automatically |
+| SMS | Inbox, send, delete. On 5G SA, sending switches to LTE and back automatically. Forwarding of new texts to another number |
+| Connection watchdog | Probes the mobile link (bypassing any VPN) and recovers: restart the data connection, then the radio, then the stick (once per outage, capped per hour) |
+| Alerts | Connection lost (SMS), connection restored and stick restarted (SMS and/or email, sent directly over SMTP), with a log and restart history |
 | Custom DNS | Applied for real: the modem's dnsmasq queries are redirected to your resolvers |
 | Tailscale | Install (Official download or 15 MB "Tiny" build), log in, start on boot, accept subnet routes, use or advertise an exit node |
 | NetBird | Install the official build, connect with a setup key, start on boot |
@@ -72,7 +75,7 @@ Pages and controls that would do nothing on this modem are hidden rather than le
 | Custom SIM profiles | Applying a profile doesn't change the modem yet (Connection Scenarios do) |
 | Cellular → Settings (SIM slot, radio power, 5G architecture, roaming), network priority, MBN | Not wired to the modem, or no Compal equivalent |
 | IMEI editing, FPLMN | Deliberately blocked SIM/NV writes |
-| Alerts, SMS forwarding, watchdog recovery | Settings are saved, but no daemon acts on them here (vosclean handles modem crashes) |
+| Watchdog: backup-SIM step, quality trigger, modem-crash hold | One SIM slot; only lost connections trigger recovery; vosclean restarts a crashed modem itself |
 | Band and tower-lock failover, tower-lock schedule, LTE EARFCN-only lock | No watcher daemon; the modem only locks LTE to a cell |
 | General settings, languages, backup/restore, connection quality, adaptive polling | Not saved or not applied on this build |
 | Self-update | An upstream update would replace this build |
@@ -139,7 +142,7 @@ Set by vosclean when it starts QManager; change them in `/data/vosclean/etc/vosc
 | `PORT` | `8080` | HTTP port |
 | `TLS_PORT` | `8443` | HTTPS port (self-signed certificate, generated on first start) |
 | `TLS_ENABLED` | `true` | `false` turns HTTPS off |
-| `QM_WATCHDOG` | `0` | `1` lets the connection watchdog toggle the radio and reboot the modem when pings fail. Leave it off: on this modem it caused reboot loops |
+| `QM_WATCHDOG` | `0` | No longer used. The watchdog is set on its page (Monitoring → Watchdog); the old one it switched on caused reboot loops, the new one restarts the stick at most once per outage |
 | `WEB_ROOT` | *(embedded)* | Serve the UI from a directory instead of the embedded copy |
 
 ## Building

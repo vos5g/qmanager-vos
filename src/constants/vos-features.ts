@@ -20,15 +20,12 @@ export const HIDDEN_ROUTES: Record<string, string> = {
   "/local-network/ip-passthrough": "Backend is a stub (no QMAP equivalent on this modem)",
   "/local-network/ttl-settings": "TTL rules miss offloaded traffic; MTU is saved but never applied",
   // Cellular
-  "/cellular/sms/forwarding": "Settings are saved, but nothing forwards messages",
   "/cellular/custom-profiles": "Applying a SIM profile only records it; nothing is sent to the modem",
   "/cellular/settings": "SIM slot, radio power, 5G architecture and roaming are not wired to the modem",
   "/cellular/settings/network-priority": "qcmd has no translation for rat_acq_order",
   "/cellular/settings/imei-settings": "IMEI writes are deliberately blocked",
   "/cellular/settings/fplmn-settings": "Needs AT+CRSM, which qcmd blocks; the status is a stub",
   // Monitoring
-  "/monitoring/alerts": "Settings are saved, but no daemon sends alerts",
-  "/monitoring/watchdog": "Recovery actions are off on this stick (vosclean handles modem crashes)",
   // System settings
   "/system-settings": "Units, timezone and the other General settings aren't saved; scheduled reboot needs a writable /etc",
   "/system-settings/languages": "Language-pack installs are a stub (the bundled languages still work)",
@@ -67,6 +64,12 @@ export const VOS_FEATURES = {
    *  off, no page treats a profile as owning its settings (the backend reports
    *  the built-in "default" profile as active, which used to lock the APN page). */
   simProfiles: false,
+  /** Watchdog: switching to a backup SIM (the board wires one SIM slot). */
+  simFailover: false,
+  /** Watchdog: recovery on poor quality (latency/loss); only lost connections trigger it here. */
+  watchdogQuality: false,
+  /** Watchdog: modem-crash (SSR) hold settings; vosclean restarts a crashed modem itself. */
+  watchdogSsr: false,
 } as const;
 
 function normalise(path: string): string {

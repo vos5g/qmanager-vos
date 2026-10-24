@@ -1,6 +1,7 @@
 package api
 
 import (
+	"time"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -149,7 +150,7 @@ func (s *Server) watchdogGet(w http.ResponseWriter) {
 	probeProfile := "relaxed"
 	var intervalOverride any
 	qualityThresholds := map[string]any(nil)
-	if pp := qmReadJSONFile("/data/vosclean/qm/etc/ping_profile.json"); len(pp) > 0 {
+	if pp := qmReadJSONFile(pingProfileFile); len(pp) > 0 {
 		if p, ok := pp["profile"].(string); ok && p != "" {
 			probeProfile = p
 		}
@@ -174,11 +175,11 @@ func (s *Server) watchdogGet(w http.ResponseWriter) {
 			"tier3_enabled":        qmCfgBool(cfg, "tier3_enabled", false),
 			"tier4_enabled":        qmCfgBool(cfg, "tier4_enabled", true),
 			"backup_sim_slot":      backupSimAny,
-			"max_reboots_per_hour": qmCfgInt(cfg, "max_reboots_per_hour", 10),
+			"max_reboots_per_hour": qmCfgInt(cfg, "max_reboots_per_hour", 3),
 		},
 		"probe_profile":       probeProfile,
 		"interval_override":   intervalOverride,
-		"effective_interval":  qmCfgInt(cfg, "probe_interval", 5),
+		"effective_interval":  int(WatchdogConfig().CheckInterval / time.Second),
 		"quality_thresholds":  qualityThresholds,
 		"status":              status,
 		"sim_failover":        simFailover,
@@ -363,6 +364,30 @@ func (s *Server) watchdogSave(w http.ResponseWriter, body map[string]any) {
 
 	if len(updates) > 0 {
 		_ = qmWriteSection("watchcat", updates)
+	}
+
+	// vosclean: the Detection tab's probe interval (named profile or custom
+	// seconds) is what the watchdog runs on, so keep it.
+	if prof, ok := body["probe_profile"].(string); ok || body["interval_override"] != nil {
+		pp := qmReadJSONFile(pingProfileFile)
+		if ok {
+			if _, valid := probeProfileSec[prof]; !valid {
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "reject_field", "detail": "probe_profile must be sensitive, regular, relaxed or quiet"})
+				return
+			}
+			pp["profile"] = prof
+		}
+		switch v := body["interval_override"].(type) {
+		case nil:
+			delete(pp, "interval_override_sec")
+		case float64:
+			if v < 1 || v > 60 {
+				_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "reject_field", "detail": "interval_override must be 1-60"})
+				return
+			}
+			pp["interval_override_sec"] = int(v)
+		}
+		writeJSONFile(pingProfileFile, pp)
 	}
 
 	// Signal daemon to reload.

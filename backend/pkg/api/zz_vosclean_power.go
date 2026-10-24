@@ -9,6 +9,8 @@ package api
 // the stick it is back online in about 15 seconds, with a new IPv4 address.
 
 import (
+	"qmanager-backend/pkg/daemon"
+
 	"errors"
 	"net/http"
 	"os/exec"
@@ -31,6 +33,7 @@ func (s *Server) vosReconnectRadio() error {
 		return errors.New("a reconnect is already in progress")
 	}
 	defer vosReconnectMu.Unlock()
+	daemon.HoldRadio() // the watchdog shouldn't treat this gap as an outage
 	if resp, err := s.atClient.Exec("AT+CFUN=0"); err != nil || strings.Contains(resp, "ERROR") {
 		return errors.New("the modem refused to turn the radio off")
 	}
@@ -53,6 +56,8 @@ func vosRebootSoon(w http.ResponseWriter) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
+	daemon.HoldRadio()
+	daemon.MarkPlannedReboot("user")
 	go func() {
 		time.Sleep(vosRebootDelay)
 		if err := exec.Command("systemctl", "reboot").Run(); err != nil {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -35,6 +36,36 @@ type Watchdog struct {
 	// (cmd/server) wires this to real modem recovery: Tier-1 radio reset via
 	// AT+CFUN, Tier-2 hard reboot. Nil recoveryFunc = no-op (old behavior).
 	recoveryFunc func(fails int)
+
+	// vosclean: settings from the Watchdog page (interval, threshold) and a
+	// hook that sees every check result (the recovery ladder).
+	configFunc func() WatchConfig
+	checkHook  func(ok bool, fails int, now time.Time)
+}
+
+// SetConfig makes the watchdog follow the Watchdog page's settings
+// (check interval and fail threshold) instead of its constructor values.
+func (w *Watchdog) SetConfig(fn func() WatchConfig) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.configFunc = fn
+}
+
+// SetCheckHook is called after every check, outside the watchdog's lock.
+func (w *Watchdog) SetCheckHook(fn func(ok bool, fails int, now time.Time)) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.checkHook = fn
+}
+
+func (w *Watchdog) currentInterval() time.Duration {
+	w.mu.Lock()
+	fn := w.configFunc
+	w.mu.Unlock()
+	if fn != nil {
+		return fn().normalise().CheckInterval
+	}
+	return w.interval
 }
 
 func NewWatchdog(targetHost string, interval time.Duration, failThreshold int) *Watchdog {
@@ -87,13 +118,25 @@ func (w *Watchdog) defaultPing(host string) bool {
 	return false
 }
 
+// probeDialer marks its sockets with the WireGuard bypass mark (0xca6c, ip
+// rule 5289 -> main table), so the probe tests the mobile link itself: a VPN
+// that is down (or its kill switch) can't make the watchdog reset the radio.
+var probeDialer = &net.Dialer{
+	Timeout: 3 * time.Second,
+	Control: func(_, _ string, c syscall.RawConn) error {
+		return c.Control(func(fd uintptr) {
+			_ = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_MARK, 0xca6c)
+		})
+	},
+}
+
 func (w *Watchdog) pingOne(host string) bool {
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, "53"), 3*time.Second)
+	conn, err := probeDialer.Dial("tcp", net.JoinHostPort(host, "53"))
 	if err == nil {
 		_ = conn.Close()
 		return true
 	}
-	connHTTP, errHTTP := net.DialTimeout("tcp", net.JoinHostPort(host, "80"), 3*time.Second)
+	connHTTP, errHTTP := probeDialer.Dial("tcp", net.JoinHostPort(host, "80"))
 	if errHTTP == nil {
 		_ = connHTTP.Close()
 		return true
@@ -104,14 +147,13 @@ func (w *Watchdog) pingOne(host string) bool {
 // Start launches watchdog loop in a goroutine
 func (w *Watchdog) Start() {
 	go func() {
-		ticker := time.NewTicker(w.interval)
-		defer ticker.Stop()
-
 		for {
+			t := time.NewTimer(w.currentInterval())
 			select {
-			case <-ticker.C:
+			case <-t.C:
 				w.CheckOnce()
 			case <-w.stopChan:
+				t.Stop()
 				log.Println("[Watchdog] Stopping Watchdog daemon goroutine")
 				return
 			}
@@ -126,7 +168,21 @@ func (w *Watchdog) Stop() {
 
 func (w *Watchdog) CheckOnce() {
 	w.mu.Lock()
-	defer w.mu.Unlock()
+	if w.configFunc != nil {
+		cfg := w.configFunc().normalise()
+		w.failThreshold = cfg.FailThreshold
+		w.status.FailThreshold = cfg.FailThreshold
+		w.status.Enabled = cfg.Enabled
+	}
+	hook := w.checkHook
+	var hookOK bool
+	var hookFails int
+	defer func() {
+		w.mu.Unlock()
+		if hook != nil {
+			hook(hookOK, hookFails, time.Now())
+		}
+	}()
 
 	now := time.Now().Unix()
 	w.status.LastCheckTime = now
@@ -156,12 +212,15 @@ func (w *Watchdog) CheckOnce() {
 		}
 	}
 
+	hookOK, hookFails = success, w.status.ConsecutiveFails
 	w.writeStatusFile()
 }
 
 // recordPingHistory appends one NDJSON line to /tmp/qmanager_ping_history.json.
 // Contract with frontend (use-latency-history.ts, PingHistoryEntry):
-//   {"ts":..., "lat":..., "avg":..., "min":..., "max":..., "loss":..., "jit":...}
+//
+//	{"ts":..., "lat":..., "avg":..., "min":..., "max":..., "loss":..., "jit":...}
+//
 // Keep the last 720 entries (~6h at the 30s watchdog cadence).
 func (w *Watchdog) recordPingHistory(ts int64, success bool, latencyMs float64) {
 	type pingEntry struct {

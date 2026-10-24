@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const (
+var ( // vars so tests can point them elsewhere
 	smsConfigPath     = "/data/vosclean/qm/etc/sms_alerts.json"
 	emailConfigPath   = "/data/vosclean/qm/etc/email_alerts.json"
 	discordConfigPath = "/data/vosclean/qm/etc/discord_bot.json"
@@ -85,7 +85,7 @@ func (s *Server) alertsGet(w http.ResponseWriter) {
 				"recipient_email":   emailRecipient,
 				"app_password_set":  emailPwSet,
 				"configured":        emailSender != "" && emailRecipient != "" && emailPwSet,
-				"msmtp_installed":   fileExistsAny("/usr/bin/msmtp", "/usr/sbin/msmtp"),
+				"msmtp_installed":   true, // vosclean: email is sent natively over SMTP (zz_vosclean_notify.go)
 				"threshold_minutes": emailThreshold,
 			},
 		},
@@ -188,11 +188,13 @@ func (s *Server) alertsPost(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"success": true})
 
 	case "send_test":
+		// vosclean: really sends (zz_vosclean_notify.go)
 		channel := qmStr(body["channel"])
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"success": true,
-			"detail":  "Test " + channel + " alert dispatched",
-		})
+		if err := sendTestAlert(channel); err != nil {
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "send_failed", "detail": err.Error()})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "detail": "Test " + channel + " alert sent"})
 
 	case "get_log":
 		lines := []map[string]any{}

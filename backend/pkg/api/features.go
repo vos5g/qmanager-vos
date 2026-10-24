@@ -797,39 +797,6 @@ func (s *Server) HandleTrafficMasquerade(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "method_not_allowed"})
 }
 
-// HandleSMSForwarding handles SMS forwarding service config
-func (s *Server) HandleSMSForwarding(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	cfg := qmReadJSONFile("/data/vosclean/qm/etc/sms_forwarding.json")
-	enabled := qmBool(cfg["enabled"])
-	number := qmStr(cfg["number"])
-
-	if r.Method == http.MethodPost {
-		var body map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			_ = json.NewEncoder(w).Encode(map[string]any{"success": false, "error": "invalid_json"})
-			return
-		}
-		if v, ok := body["enabled"].(bool); ok {
-			enabled = v
-		}
-		if v, ok := body["number"].(string); ok {
-			number = v
-		}
-		writeJSONFile("/data/vosclean/qm/etc/sms_forwarding.json", map[string]any{
-			"enabled": enabled,
-			"number":  number,
-		})
-	}
-
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"enabled": enabled,
-		"number":  number,
-	})
-}
-
 // HandleEthernetStatus queries physical ethernet link speed and negotiation
 func (s *Server) HandleEthernetStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

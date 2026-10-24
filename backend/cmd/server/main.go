@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -98,59 +97,18 @@ func main() {
 	//  - hard reboot BARU di 10 gagal (~2.5 menit LOS beneran) + cooldown 300s:
 	//    refresh IP biasa (30-60s) gak akan pernah kena reboot
 	//  - single-flight (recovery gak numpuk)
-	watchdog := daemon.NewWatchdog("1.1.1.1", 15*time.Second, 2)
-	var (
-		recovering      atomic.Bool
-		lastHardReboot  time.Time
-		lastSoftRecover time.Time
-	)
-	watchdog.SetRecoveryFunc(func(fails int) {
-		// vosclean: pings always run (real latency data); recovery actions
-		// (CFUN toggle / reboot) only when explicitly enabled.
-		if os.Getenv("QM_WATCHDOG") != "1" {
-			return
-		}
-		if !recovering.CompareAndSwap(false, true) {
-			return // recovery udah jalan, gak boleh numpuk
-		}
-		defer recovering.Store(false)
-
-		// Hard reboot: cuma LOS beneran, cooldown 300s biar gak reboot-storm.
-		if fails >= 10 {
-			if time.Since(lastHardReboot) < 300*time.Second {
-				log.Printf("[Watchdog] RECOVERY: hard reboot ditahan (cooldown 300s), fails=%d", fails)
-				return
-			}
-			lastHardReboot = time.Now()
-			log.Printf("[Watchdog] RECOVERY: consecutive fails=%d -> HARD REBOOT", fails)
-			daemon.RecordWatchcatEvent(true, fmt.Sprintf("%d consecutive ping failures", fails))
-			_ = exec.Command("/bin/sh", "-c", "sync; (sleep 2; busybox reboot -f) >/dev/null 2>&1 &").Start()
-			return
-		}
-
-		// SOFT backoff 180s: setelah 1x soft recovery, kasih waktu 3 menit buat
-		// modem settle / re-attach sendiri. Dulu soft jalan tiap tick pas masih
-		// fails>=2 → CFUN spam → malah ngeganggu recovery natural = 15 menit.
-		if time.Since(lastSoftRecover) < 180*time.Second {
-			log.Printf("[Watchdog] RECOVERY: soft ditahan (backoff 180s), fails=%d - ngasih modem waktu recover sendiri", fails)
-			return
-		}
-		lastSoftRecover = time.Now()
-
-		// SOFT: COPS detach + CFUN radio reset + PDP reactivate.
-		log.Printf("[Watchdog] RECOVERY: consecutive fails=%d -> soft (COPS detach + CFUN 0/1 + PDP)", fails)
-		daemon.RecordWatchcatEvent(false, fmt.Sprintf("%d consecutive ping failures", fails))
-		_, _ = atClient.Exec("AT+COPS=2")
-		time.Sleep(2 * time.Second)
-		_, _ = atClient.Exec("AT+CFUN=0")
-		time.Sleep(4 * time.Second)
-		_, _ = atClient.Exec("AT+CFUN=1")
-		time.Sleep(12 * time.Second)
-		_, _ = atClient.Exec("AT+CGACT=1,1")
-		time.Sleep(5 * time.Second)
-	})
+	// vosclean: the watchdog follows the Watchdog page (interval, threshold,
+	// enabled steps) and recovers with actions that work on this stick:
+	// data-connection restart, radio restart, then a capped stick restart.
+	// Its probe bypasses WireGuard, so a VPN outage can't trigger it.
+	watchdog := daemon.NewWatchdog("1.1.1.1", 10*time.Second, 5)
+	watchdog.SetConfig(api.WatchdogConfig)
+	recovery := daemon.NewRecovery(atClient, api.WatchdogConfig)
+	watchdog.SetCheckHook(recovery.OnCheck)
 	watchdog.Start()
-	log.Println("[Daemon] Background Watchdog started (15s interval, multi-host, soft backoff 180s, hard reboot @10 fails + cooldown 300s)")
+	api.StartDataUsage()
+	api.StartNotifier()
+	log.Println("[Daemon] Background Watchdog started (settings from the Watchdog page)")
 
 	// Register API Routes
 	server := api.NewServer(atClient)
@@ -238,6 +196,7 @@ func main() {
 
 	// Stop background daemons
 	watchdog.Stop()
+	api.SaveDataUsage()
 
 	// Shutdown HTTPS server if running
 	if tlsServer != nil {

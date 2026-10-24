@@ -344,43 +344,36 @@ func (s *Server) HandleProfilesCurrentSettings(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// HandleScenariosList lists connection scenarios
-// Frontend contract (types/connection-scenario.ts StoredScenario):
-//   { id, name, description, gradient, config: {atModeValue, mode, optimization, lte_bands, nsa_nr_bands, sa_nr_bands} }
-// Missing gradient/config crashes connection-scenario-card.tsx (spread ...s then
-// ScenarioItem reads scenario.gradient).
+// HandleScenariosList lists the user's custom connection scenarios.
+// Frontend contract (types/connection-scenario.ts ScenarioListResponse):
+//   { scenarios: StoredScenario[], active_scenario_id }
+// The built-in Balanced / Gaming / Streaming scenarios live in the UI
+// (DEFAULT_SCENARIOS); returning them here too showed each one twice, the
+// copy as a "custom" card that was also marked active.
 func (s *Server) HandleScenariosList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	scenarios := []map[string]interface{}{
-		{
-			"id": "balanced", "name": "Balanced", "description": "Balanced speed and stability",
-			"gradient": "from-emerald-500 via-teal-500 to-cyan-500",
-			"config": map[string]interface{}{
-				"atModeValue": "AUTO", "mode": "Auto", "optimization": "Balanced",
-				"lte_bands": "", "nsa_nr_bands": "", "sa_nr_bands": "",
-			},
-		},
-		{
-			"id": "gaming", "name": "Gaming", "description": "Low latency for gaming and VoIP",
-			"gradient": "from-violet-600 via-purple-600 to-indigo-700",
-			"config": map[string]interface{}{
-				"atModeValue": "AUTO", "mode": "Auto", "optimization": "Latency",
-				"lte_bands": "", "nsa_nr_bands": "", "sa_nr_bands": "",
-			},
-		},
-		{
-			"id": "streaming", "name": "Streaming", "description": "High throughput for streaming",
-			"gradient": "from-rose-500 via-pink-500 to-orange-400",
-			"config": map[string]interface{}{
-				"atModeValue": "AUTO", "mode": "Auto", "optimization": "Throughput",
-				"lte_bands": "", "nsa_nr_bands": "", "sa_nr_bands": "",
-			},
-		},
+	scenarios := []map[string]interface{}{}
+	for _, sc := range loadCustomScenarios() {
+		id, _ := sc["id"].(string)
+		if id == "" || isBuiltinScenario(id) {
+			continue
+		}
+		if g, _ := sc["gradient"].(string); g == "" {
+			sc["gradient"] = "from-slate-600 via-slate-700 to-slate-800"
+		}
+		cfg, _ := sc["config"].(map[string]interface{})
+		sc["config"] = normalizeScenarioConfig(cfg)
+		scenarios = append(scenarios, sc)
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"success":   true,
-		"scenarios": scenarios,
+		"success":            true,
+		"scenarios":          scenarios,
+		"active_scenario_id": activeScenarioID(),
 	})
+}
+
+func isBuiltinScenario(id string) bool {
+	return id == "balanced" || id == "gaming" || id == "streaming"
 }

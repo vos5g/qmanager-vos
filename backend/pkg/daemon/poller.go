@@ -29,6 +29,7 @@ type Poller struct {
 	lastLteBand  string
 	lastPci      int
 	lastRsrp     *int
+	lastThrottle int // vosclean: last thermal throttle level, -1 before the first reading
 	lastOnline   bool
 	eventsBooted bool
 }
@@ -38,9 +39,10 @@ func NewPoller(atClient at.Executor, interval time.Duration) *Poller {
 		interval = 5 * time.Second
 	}
 	return &Poller{
-		atClient: atClient,
-		interval: interval,
-		stopChan: make(chan struct{}),
+		atClient:     atClient,
+		interval:     interval,
+		stopChan:     make(chan struct{}),
+		lastThrottle: -1,
 	}
 }
 
@@ -389,6 +391,7 @@ func (p *Poller) pollOnce() {
 		},
 		"connectivity": lastPingConnectivity(now, wanIp),
 	}
+	p.addHardwareInfo(status["device"].(map[string]interface{}), now)
 
 	data, err := json.MarshalIndent(status, "", "  ")
 	if err != nil {
@@ -623,6 +626,11 @@ func parseATIResponse(resp string) (manufacturer string, model string, firmware 
 			manufacturer = line
 		} else if strings.Contains(line, "Revision:") || strings.Contains(line, "Firmware:") || strings.Contains(line, "Built@") {
 			firmware = line
+			for _, pfx := range []string{"Revision:", "Firmware:"} {
+				if strings.HasPrefix(firmware, pfx) {
+					firmware = strings.TrimSpace(strings.TrimPrefix(firmware, pfx))
+				}
+			}
 		} else if len(line) >= 3 && len(line) <= 25 && model == "" {
 			model = line
 		}

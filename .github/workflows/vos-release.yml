@@ -55,8 +55,15 @@ jobs:
             go build -trimpath -ldflags="-s -w $VER" -o ../dist/qmanager-core-armv7 ./cmd/server
 
       - name: Build Tailscale Tiny (linux/armv7, from Tailscale's own source)
+        # Optional: a Tailscale build problem must not hold back the QManager
+        # release (the binary is then left out and the notes say so).
+        continue-on-error: true
         env:
           TS_VER_IN: ${{ inputs.tailscale_version }}
+          # Tailscale moves to new Go releases quickly (1.104 needs Go 1.27.3);
+          # setup-go sets GOTOOLCHAIN=local, so let this step fetch the Go
+          # version Tailscale's go.mod asks for.
+          GOTOOLCHAIN: auto
         run: |
           VER="${TS_VER_IN:-$(curl -fsSL 'https://pkgs.tailscale.com/stable/?mode=json' | sed -n 's/.*"TarballsVersion": *"\([^"]*\)".*/\1/p')}"
           test -n "$VER"
@@ -73,7 +80,7 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: |
-          sha256sum qmanager-core-armv7 tailscaled-tiny-armv7 > SHA256SUMS.txt
+          sha256sum qmanager-core-armv7 $(ls tailscaled-tiny-armv7 2>/dev/null) > SHA256SUMS.txt
           cat SHA256SUMS.txt
           ls -l
 
@@ -88,14 +95,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          TS=$(cat dist/tailscale-tiny.version)
+          if [ -f dist/tailscaled-tiny-armv7 ]; then
+            TS=$(cat dist/tailscale-tiny.version)
+            TSLINE="- tailscaled-tiny-armv7: Tailscale $TS built from Tailscale's own source with unused
+            features left out (single binary, CLI built in). Install with install.sh --tailscale-tiny."
+          else
+            TSLINE="- Tailscale Tiny could not be built for this release; use the Official Tailscale
+            install from the Tailscale page, or the tailscaled-tiny-armv7 from an earlier release."
+          fi
           cat > notes.md <<NOTES
           ARMv7 binaries for the Tri Cascade VOS 5G / SG500M2-X (Compal RXM-G1, SDX55).
 
           - qmanager-core-armv7: QManager (evairo176 UI) ported to the Compal modem; needs qcmd and
             vosclean from https://github.com/vos5g/vos5g-sdx55 (install.sh does both).
-          - tailscaled-tiny-armv7: Tailscale $TS built from Tailscale's own source with unused
-            features left out (single binary, CLI built in). Install with install.sh --tailscale-tiny.
+          $TSLINE
 
           Check downloads against SHA256SUMS.txt. QManager is MIT with Commons Clause (not for sale).
           NOTES
@@ -109,7 +122,7 @@ jobs:
             { sed '1{/^# /d}' "release-notes/$TAG.md"; printf '\n## 📦 Downloads\n\n'; cat notes.md; } > notes-full.md
             mv notes-full.md notes.md
           fi
-          FILES="dist/qmanager-core-armv7 dist/tailscaled-tiny-armv7 dist/SHA256SUMS.txt"
+          FILES="dist/qmanager-core-armv7 $(ls dist/tailscaled-tiny-armv7 2>/dev/null) dist/SHA256SUMS.txt"
           if gh release view "$TAG" >/dev/null 2>&1; then
             # release drafted/published in the web UI: just attach the binaries
             gh release upload "$TAG" $FILES --clobber

@@ -392,6 +392,7 @@ func (p *Poller) pollOnce() {
 		"connectivity": lastPingConnectivity(now, wanIp),
 	}
 	p.addHardwareInfo(status["device"].(map[string]interface{}), now)
+	p.addLinkInfo(status, time.Unix(now, 0))
 
 	data, err := json.MarshalIndent(status, "", "  ")
 	if err != nil {

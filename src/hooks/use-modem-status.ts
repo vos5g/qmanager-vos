@@ -27,6 +27,20 @@ const STALE_THRESHOLD_SECONDS = 10;
 /** CGI endpoint path (proxied in dev via next.config.ts rewrites) */
 const FETCH_ENDPOINT = "/cgi-bin/quecmanager/at_cmd/fetch_data.sh";
 
+// Shared by every useModemStatus instance: the last status timestamp seen and
+// when (browser time) it first appeared.
+let lastStamp: number | null = null;
+let lastStampSeenAt = 0;
+
+/** Seconds since the status timestamp last changed, on the browser's clock. */
+export function statusAgeSeconds(stamp: number, now = Date.now()): number {
+  if (stamp !== lastStamp) {
+    lastStamp = stamp;
+    lastStampSeenAt = now;
+  }
+  return Math.floor((now - lastStampSeenAt) / 1000);
+}
+
 export interface UseModemStatusOptions {
   /** Polling interval in ms (default: 2000) */
   pollInterval?: number;
@@ -71,11 +85,13 @@ export function useModemStatus(
   // via keepPreviousData-like behavior is default), so data stays present.
   const data = query.data ?? null;
 
-  // Staleness: compare the JSON timestamp to current time.
-  const isStale = data
-    ? Math.floor(Date.now() / 1000) - data.timestamp >
-      STALE_THRESHOLD_SECONDS
-    : true;
+  // Staleness (vosclean): measured on the browser's clock, from when the
+  // status timestamp last changed. Comparing the timestamp itself with the
+  // browser's clock showed OFFLINE whenever the stick's clock was off (it has
+  // no battery-backed clock and boots at 1970 until NITZ or NTP sets it).
+  // dataUpdatedAt is read so each successful fetch re-renders this hook.
+  void query.dataUpdatedAt;
+  const isStale = data ? statusAgeSeconds(data.timestamp) > STALE_THRESHOLD_SECONDS : true;
 
   const error = query.error
     ? query.error instanceof Error

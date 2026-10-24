@@ -341,7 +341,9 @@ func (r *Recovery) announceLastReboot() {
 	AppendEvent(time.Unix(m.Timestamp, 0), "watchcat_recovery", "error", "Watchdog restarted the stick: "+m.Reason)
 }
 
-func syncFS() { _ = exec.Command("sync").Run() }
+// syncFS flushes the flash so restart notes survive a power cut (a var so
+// tests can skip the real, slow sync).
+var syncFS = func() { _ = exec.Command("sync").Run() }
 
 var PlannedRebootFile = "/data/vosclean/qm/etc/planned_reboot"
 

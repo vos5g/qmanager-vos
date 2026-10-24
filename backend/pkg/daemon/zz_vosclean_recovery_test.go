@@ -30,6 +30,7 @@ func newTestRecovery(t *testing.T, cfg *WatchConfig) (*Recovery, *recAT, *[]stri
 	eventsFile = filepath.Join(d, "events.json")
 	PlannedRebootFile = filepath.Join(d, "planned_reboot")
 	rebootedFile = filepath.Join(d, "rebooted_outage")
+	syncFS = func() {}
 	at := &recAT{}
 	r := NewRecovery(at, func() WatchConfig { return *cfg })
 	var cmds []string
@@ -46,7 +47,7 @@ func newTestRecovery(t *testing.T, cfg *WatchConfig) (*Recovery, *recAT, *[]stri
 
 // wait for the step's goroutine, then clear the hold it set (time passes).
 func settle(r *Recovery) {
-	for i := 0; i < 200; i++ {
+	for i := 0; i < 2000; i++ { // up to 10 s: CI machines can be slow
 		r.mu.Lock()
 		running := r.running
 		r.mu.Unlock()

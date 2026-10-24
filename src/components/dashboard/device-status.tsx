@@ -53,7 +53,24 @@ const DeviceStatusComponent = ({
 
   const rows = [
     { label: t("device_status.firmware_version"), value: data?.firmware || "-" },
-    { label: t("device_status.build_date"), value: data?.build_date || "-" },
+    // vosclean: the Compal firmware has no build date; show the module instead.
+    ...(data?.build_date
+      ? [{ label: t("device_status.build_date"), value: data.build_date }]
+      : []),
+    ...(data?.module_sku
+      ? [{
+          label: t("device_status.module"),
+          value: data.hw_version ? `${data.module_sku} · HW ${data.hw_version}` : data.module_sku,
+        }]
+      : []),
+    ...(data?.mmwave
+      ? [{
+          label: t("device_status.mmwave"),
+          value: data.mmwave.fitted
+            ? t("device_status.mmwave_fitted")
+            : t("device_status.mmwave_not_fitted"),
+        }]
+      : []),
     { label: t("device_status.apn"), value: apn || "-", mono: true },
     {
       label: t("device_status.phone_number"),

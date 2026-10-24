@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   TbAlertTriangleFilled,
+  TbCircleCheckFilled,
   TbCircleArrowDownFilled,
   TbCircleArrowUpFilled,
   TbInfoCircleFilled,
@@ -324,6 +325,12 @@ const DeviceMetricsComponent = ({
   const { t } = useTranslation("dashboard");
   const unitPrefs = useUnitPreferences();
   const temp = deviceData?.temperature ?? null;
+  const throttle = deviceData?.thermal_throttle ?? null;
+  const mmwFitted = deviceData?.mmwave?.fitted ?? false;
+  const sensorName = (name: string) =>
+    name.startsWith("mmw")
+      ? t("metrics.throttle_sensor.mmw", { n: name.slice(3) })
+      : t(`metrics.throttle_sensor.${name}`, { defaultValue: name });
   const cpu = deviceData?.cpu_usage ?? null;
   const loadAvg = deviceData?.load_avg ?? "";
   const memUsed = deviceData?.memory_used_mb ?? 0;
@@ -407,6 +414,54 @@ const DeviceMetricsComponent = ({
               />
             )}
           </div>
+
+          {/* Thermal throttling (vosclean, AT+CEITHERM?) */}
+          {throttle && (
+            <>
+              <Separator />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-muted-foreground text-sm">
+                    {t("metrics.throttling")}
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="inline-flex" aria-label={t("metrics.throttling_aria")}>
+                        <TbInfoCircleFilled className="size-3 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72">
+                      <p>{t("metrics.throttling_tooltip")}</p>
+                      <ul className="mt-1.5 grid gap-0.5 tabular-nums">
+                        {throttle.sensors
+                          .filter((s) => mmwFitted || !s.name.startsWith("mmw"))
+                          .map((s) => (
+                            <li key={s.name} className="flex justify-between gap-4">
+                              <span>{sensorName(s.name)}</span>
+                              <span>{t("metrics.throttling_level", { level: s.level })}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                {throttle.level > 0 ? (
+                  <Badge variant="outline" className="border-warning/30 bg-warning/15 text-warning">
+                    <TbAlertTriangleFilled className="size-3" />
+                    {t("metrics.throttling_active", {
+                      level: throttle.level,
+                      part: sensorName(throttle.source),
+                    })}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="border-success/30 bg-success/15 text-success">
+                    <TbCircleCheckFilled className="size-3" />
+                    {t("metrics.throttling_none")}
+                  </Badge>
+                )}
+              </div>
+            </>
+          )}
 
           {/* CPU Usage */}
           <Separator />

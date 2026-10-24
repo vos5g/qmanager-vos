@@ -207,11 +207,32 @@ export interface NrStatus {
   ta: number | null;
 }
 
+export interface ThermalThrottle {
+  /** Highest level among the sensors that count (0 = not throttling) */
+  level: number;
+  /** Sensor at that level: "pa", "pa_fr1", "modem" or "mmw0".."mmw3" ("" at 0) */
+  source: string;
+  /** Every sensor the modem reports */
+  sensors: { name: string; level: number }[];
+}
+
 export interface DeviceStatus {
   /** Live adaptive-polling backoff tier the poller is currently running at. */
   poller_tier?: PollerTier;
   /** Average modem temperature in °C across all available sensors (null if unavailable) */
   temperature: number | null;
+  /**
+   * vosclean: the modem's thermal mitigation (AT+CEITHERM?). Level 0 is full
+   * speed; higher levels cut power or throughput to cool down. Null until the
+   * modem has answered. mmWave sensors don't count while mmWave isn't fitted.
+   */
+  thermal_throttle?: ThermalThrottle | null;
+  /** vosclean: module SKU from AT+PRODUCTINFO, e.g. "RXM-G1 BR23" */
+  module_sku?: string;
+  /** vosclean: module hardware revision from AT+PRODUCTINFO */
+  hw_version?: string;
+  /** vosclean: whether mmWave antenna modules are configured (MMW_RFC_ID > 0) */
+  mmwave?: { fitted: boolean; rfc_id: number; sub6_rfc_id: number };
   /** CPU usage percentage (0–100), calculated from /proc/stat delta between poll cycles */
   cpu_usage: number;
   /** Load average "1m 5m 15m" string from /proc/loadavg (empty if unavailable) */
@@ -707,7 +728,8 @@ export type NetworkEventType =
   | "config_restore_section_failed" // Single section failed after retries
   | "config_restore_section_skipped" // Single section skipped (incompatible or sim_mismatch)
   | "config_restore_completed" // Configuration restore completed
-  | "lan_address_changed"; // LAN IP address / subnet changed by user
+  | "lan_address_changed" // LAN IP address / subnet changed by user
+  | "thermal_throttle"; // vosclean: modem thermal throttling started, rose or ended
 
 /** Severity level for UI icon coloring */
 export type EventSeverity = "info" | "warning" | "error";

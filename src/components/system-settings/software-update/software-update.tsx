@@ -1,9 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  ChevronDownIcon,
+  DownloadCloudIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  FlaskConicalIcon,
+  RefreshCwIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
+
+import { PageHeader } from "@/components/page-header";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -12,400 +38,396 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import {
-  CheckIcon,
-  CheckCircle2Icon,
-  AlertTriangleIcon,
-  TriangleAlertIcon,
-  DownloadIcon,
-  DownloadCloud,
-  LoaderCircle,
-  RefreshCwIcon,
-  PackageIcon,
-  RotateCwIcon,
-} from "lucide-react";
-import { PageHeader } from "@/components/page-header";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { containerVariants, itemVariants } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { formatMB, useQmUpdate, type QmRelease, type QmUpdateStatus } from "@/hooks/use-qm-update";
 
-import { useSoftwareUpdate } from "@/hooks/use-software-update";
-import type { UpdateStatus } from "@/hooks/use-software-update";
-import { toast } from "sonner";
-import { UpdateStatusCard } from "./update-status-card";
-import { UpdatePreferencesCard } from "./update-preferences-card";
-import { ManualUpdateCard } from "./manual-update-card";
+// =============================================================================
+// Software Update — QManager releases from GitHub (vos5g/qmanager-vos)
+// =============================================================================
+// Install the latest release, any older one (downgrade) or go back to the
+// version that ran before. The stick checks each download against the
+// release's SHA256SUMS.txt, and puts the previous binary back by itself if a
+// new one doesn't start.
+// =============================================================================
 
-// ─── Shared helpers ─────────────────────────────────────────────────────────
-
-export function StatusBadge({
-  updateAvailable,
-  isUpdating,
-  isDownloading,
-  updateStatus,
-}: {
-  updateAvailable: boolean;
-  isUpdating: boolean;
-  isDownloading?: boolean;
-  updateStatus: UpdateStatus;
-}) {
+function StateBadge({ data }: { data: QmUpdateStatus }) {
   const { t } = useTranslation("system-settings");
-
-  if (isUpdating && updateStatus.status !== "error") {
+  const p = data.progress.state;
+  if (p === "downloading" || p === "installing" || p === "restarting") {
     return (
-      <Badge variant="outline" className="bg-info/15 text-info hover:bg-info/20 border-info/30">
+      <Badge variant="outline" className="border-info/30 bg-info/15 text-info">
         <DownloadIcon className="size-3" />
-        {t("software_update.badge_updating")}
+        {t("vos_update.badge_installing")}
       </Badge>
     );
   }
-  if (isDownloading) {
+  if (!data.release_build) {
     return (
-      <Badge variant="outline" className="bg-info/15 text-info hover:bg-info/20 border-info/30">
-        <DownloadIcon className="size-3" />
-        {t("software_update.badge_downloading")}
+      <Badge variant="outline" className="border-muted-foreground/30 bg-muted/50 text-muted-foreground">
+        <FlaskConicalIcon className="size-3" />
+        {t("vos_update.badge_dev")}
       </Badge>
     );
   }
-  if (updateAvailable) {
+  if (data.update_available) {
     return (
-      <Badge variant="outline" className="bg-warning/15 text-warning hover:bg-warning/20 border-warning/30">
+      <Badge variant="outline" className="border-warning/30 bg-warning/15 text-warning">
         <TriangleAlertIcon className="size-3" />
-        {t("software_update.badge_update_available")}
+        {t("vos_update.badge_available")}
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="bg-success/15 text-success hover:bg-success/20 border-success/30">
+    <Badge variant="outline" className="border-success/30 bg-success/15 text-success">
       <CheckCircle2Icon className="size-3" />
-      {t("software_update.badge_up_to_date")}
+      {t("vos_update.badge_current")}
     </Badge>
   );
 }
 
-// ─── Update progress stepper ────────────────────────────────────────────────
-
-interface StepConfig {
-  label: string;
-  detail: Record<string, string>;
-  icon: React.ReactNode;
-}
-
-const STEP_MAP: Record<string, number> = {
-  downloading: 0,
-  installing: 1,
-  rebooting: 2,
-};
-
-type StepState = "done" | "active" | "pending";
-
-function getStepState(stepIndex: number, activeIndex: number): StepState {
-  if (stepIndex < activeIndex) return "done";
-  if (stepIndex === activeIndex) return "active";
-  return "pending";
-}
-
-const stepIconMap: Record<StepState, (defaultIcon: React.ReactNode) => React.ReactNode> = {
-  done: () => <CheckIcon className="size-4 text-success" />,
-  active: () => <LoaderCircle className="size-4 animate-spin text-info" />,
-  pending: (icon) => <span className="text-muted-foreground/50">{icon}</span>,
-};
-
-// ─── Component ──────────────────────────────────────────────────────────────
-
-const SoftwareUpdateComponent = () => {
-  const { t } = useTranslation("system-settings");
-  const hookData = useSoftwareUpdate();
-  const {
-    updateInfo,
-    updateStatus,
-    downloadState,
-    isLoading,
-    isChecking,
-    isUpdating,
-    isDownloading,
-    isInstallStalled,
-    error,
-  } = hookData;
-
-  const progressListAria = t("software_update.progress_list_aria");
-
-  // Wrapped action handlers that surface a success toast once the underlying
-  // request finishes. Failures are already surfaced by the hook's error state
-  // and the child cards' error toasts.
-  const handleCheckForUpdates = async () => {
-    await hookData.checkForUpdates();
-    toast.success("Update check complete", { duration: 2500 });
-  };
-
-  const handleDownloadUpdate = async (version?: string) => {
-    await hookData.downloadUpdate(version);
-    toast.success("Update download started", { duration: 2500 });
-  };
-
-  const handleInstallStaged = async () => {
-    await hookData.installStaged();
-    toast.success("Update install started", { duration: 2500 });
-  };
-
-  const handleRebootDevice = async () => {
-    await hookData.rebootDevice();
-    toast.success("Reboot requested", { duration: 2500 });
-  };
-
-  const steps = useMemo<StepConfig[]>(
-    () => [
-      {
-        label: t("software_update.steps_download_label"),
-        detail: {
-          active: t("software_update.steps_download_active"),
-          done: t("software_update.steps_download_done"),
-        },
-        icon: <DownloadIcon className="size-4" />,
-      },
-      {
-        label: t("software_update.steps_install_label"),
-        detail: {
-          active: t("software_update.steps_install_active"),
-          done: t("software_update.steps_install_done"),
-        },
-        icon: <PackageIcon className="size-4" />,
-      },
-      {
-        label: t("software_update.steps_reboot_label"),
-        detail: {
-          active: t("software_update.steps_reboot_active"),
-          done: t("software_update.steps_reboot_done"),
-        },
-        icon: <RotateCwIcon className="size-4" />,
-      },
-    ],
-    [t],
-  );
-
-  const waitingLabel = t("software_update.steps_waiting");
-
-  // ── Fatal error (no data at all) ──────────────────────────────────────
-  if (error && !updateInfo && !isLoading) {
-    return (
-      <PageWrapper>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardTitle>{t("software_update.status_card_title")}</CardTitle>
-            <CardDescription>
-              {t("software_update.error_unable_to_check")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertTriangleIcon className="size-4" />
-              <AlertTitle>{t("software_update.error_failed_title")}</AlertTitle>
-              <AlertDescription>
-                <p>{error}</p>
-              </AlertDescription>
-            </Alert>
-            <div className="mt-4 flex justify-end">
-              <Button
-                variant="outline"
-                onClick={handleCheckForUpdates}
-                disabled={isChecking}
-              >
-                {isChecking ? (
-                  <>
-                    <LoaderCircle className="size-4 animate-spin" />
-                    {t("software_update.checking")}
-                  </>
-                ) : (
-                  <>
-                    <RefreshCwIcon className="size-4" />
-                    {t("actions.retry", { ns: "common" })}
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </PageWrapper>
-    );
-  }
-
-  // ── Updating state (replaces entire card grid) ────────────────────────
-  if (isUpdating && updateStatus.status !== "error") {
-    const activeIndex = STEP_MAP[updateStatus.status] ?? 0;
-
-    return (
-      <PageWrapper>
-        <Card className="@container/card">
-          <CardHeader>
-            <CardTitle>{t("software_update.updating_card_title")}</CardTitle>
-            <CardDescription>
-              {updateStatus.version
-                ? t("software_update.updating_description_version", { version: updateStatus.version })
-                : t("software_update.updating_description_generic")}
-              {updateStatus.size && ` (${updateStatus.size})`}
-            </CardDescription>
-            <CardAction>
-              <StatusBadge
-                updateAvailable={false}
-                isUpdating={true}
-                isDownloading={isDownloading}
-                updateStatus={updateStatus}
-              />
-            </CardAction>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-5" aria-live="polite">
-              {/* Step list */}
-              <div className="space-y-1" role="list" aria-label={progressListAria}>
-                {steps.map((step, i) => {
-                  const state = getStepState(i, activeIndex);
-                  const detailText =
-                    state === "active"
-                      ? updateStatus.message || step.detail.active
-                      : state === "done"
-                        ? step.detail.done
-                        : waitingLabel;
-
-                  return (
-                    <motion.div
-                      key={step.label}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.25, delay: i * 0.06, ease: "easeOut" }}
-                      role="listitem"
-                      aria-current={state === "active" ? "step" : undefined}
-                      className={cn(
-                        "flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-300",
-                        state === "active" && "bg-info/5",
-                      )}
-                    >
-                      <div className="mt-0.5 shrink-0">
-                        {stepIconMap[state](step.icon)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={cn(
-                            "font-medium",
-                            state === "done" && "text-success",
-                            state === "active" && "text-foreground",
-                            state === "pending" && "text-muted-foreground",
-                          )}
-                        >
-                          {step.label}
-                        </p>
-                        <p
-                          className={cn(
-                            "text-xs mt-0.5",
-                            state === "active"
-                              ? "text-muted-foreground"
-                              : "text-muted-foreground/60",
-                          )}
-                        >
-                          {detailText}
-                        </p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Segmented progress bar */}
-              <div
-                className="flex w-full gap-1.5"
-                role="progressbar"
-                aria-valuenow={activeIndex + 1}
-                aria-valuemax={steps.length}
-                aria-label={progressListAria}
-              >
-                {steps.map((step, i) => (
-                  <div
-                    key={step.label}
-                    className={cn(
-                      "h-0.75 flex-1 rounded-full transition-colors duration-500",
-                      i < activeIndex
-                        ? "bg-success"
-                        : i === activeIndex
-                          ? "bg-primary/60"
-                          : "bg-muted/30",
-                    )}
-                  />
-                ))}
-              </div>
-
-              {/* Warning footer */}
-              <div role="alert" className="flex items-center justify-center gap-2 rounded-lg bg-warning/10 px-4 py-2.5">
-                <AlertTriangleIcon className="size-4 shrink-0 text-warning" />
-                <p className="text-xs font-medium text-warning">
-                  {t("software_update.updating_do_not_power_off")}
-                </p>
-              </div>
-
-              {isInstallStalled && updateStatus.status === "installing" && (
-                <Alert variant="warning">
-                  <AlertTriangleIcon className="size-4" />
-                  <AlertTitle>{t("software_update.updating_stall_title")}</AlertTitle>
-                  <AlertDescription>
-                    <p className="mb-3">
-                      {t("software_update.updating_stall_description")}
-                    </p>
-                    <Button size="sm" onClick={handleRebootDevice}>
-                      {t("software_update.updating_reboot_device_now")}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </PageWrapper>
-    );
-  }
-
-  // ── Normal state: 2-card grid ─────────────────────────────────────────
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <PageWrapper>
-      <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
-        <UpdateStatusCard
-          updateInfo={updateInfo}
-          updateStatus={updateStatus}
-          downloadState={downloadState}
-          isLoading={isLoading}
-          isChecking={isChecking}
-          isUpdating={isUpdating}
-          isDownloading={isDownloading}
-          error={error}
-          lastChecked={hookData.lastChecked}
-          checkForUpdates={handleCheckForUpdates}
-          downloadUpdate={handleDownloadUpdate}
-          installStaged={handleInstallStaged}
-        />
-        <UpdatePreferencesCard
-          updateInfo={updateInfo}
-          isLoading={isLoading}
-          isUpdating={isUpdating}
-          isDownloading={isDownloading}
-          downloadUpdate={hookData.downloadUpdate}
-          togglePrerelease={hookData.togglePrerelease}
-          saveAutoUpdate={hookData.saveAutoUpdate}
-        />
-      </div>
-      <ManualUpdateCard />
-    </PageWrapper>
-  );
-};
-
-function PageWrapper({ children }: { children: React.ReactNode }) {
-  const { t } = useTranslation("system-settings");
-  return (
-    <div className="@container/main mx-auto flex flex-col gap-6">
-      <PageHeader
-        icon={DownloadCloud}
-        title={t("software_update.page_title")}
-        description={t("software_update.page_description")}
-      />
-      {children}
+    <div className="flex items-baseline justify-between gap-4 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium tabular-nums">{value}</span>
     </div>
   );
 }
 
-export default SoftwareUpdateComponent;
+function fmtDate(iso: string, lang: string) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function Notes({ release }: { release: QmRelease }) {
+  const { t } = useTranslation("system-settings");
+  const [open, setOpen] = useState(false);
+  if (!release.notes.trim()) return null;
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <Button type="button" variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground">
+          <ChevronDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} />
+          {t("vos_update.release_notes")}
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-2 max-h-72 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs leading-relaxed whitespace-pre-wrap break-words">
+          {release.notes}
+        </div>
+        {release.url && (
+          <a
+            href={release.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            {t("vos_update.on_github")}
+            <ExternalLinkIcon className="size-3" />
+          </a>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+/** Confirmation for installing a release (update, reinstall or downgrade). */
+function InstallDialog({
+  release,
+  current,
+  onConfirm,
+  onClose,
+}: {
+  release: QmRelease | null;
+  current: string;
+  onConfirm: (r: QmRelease) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("system-settings");
+  if (!release) return null;
+  const older = release.version.localeCompare(current, undefined, { numeric: true }) < 0;
+  return (
+    <AlertDialog open onOpenChange={(o) => !o && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {older
+              ? t("vos_update.confirm_downgrade_title", { version: release.version })
+              : t("vos_update.confirm_install_title", { version: release.version })}
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="grid gap-2">
+              <p>{t("vos_update.confirm_body", { size: formatMB(release.size) })}</p>
+              {!release.has_updater && (
+                <p className="text-warning">{t("vos_update.confirm_no_updater", { version: release.version })}</p>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("actions.cancel", { ns: "common" })}</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onConfirm(release)}>
+            {older ? t("vos_update.downgrade") : t("vos_update.install")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+export default function SoftwareUpdate() {
+  const { t, i18n } = useTranslation("system-settings");
+  const [awaiting, setAwaiting] = useState<string | null>(null);
+  const { data, isLoading, isError, check, install, rollback } = useQmUpdate({ fast: awaiting !== null });
+  const [confirm, setConfirm] = useState<QmRelease | null>(null);
+  const [confirmRollback, setConfirmRollback] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+
+  // Once QManager is back on the version we waited for, stop waiting
+  // (render-phase adjustment, so no extra effect pass).
+  const [prevData, setPrevData] = useState<QmUpdateStatus | null>(null);
+  if (data && data !== prevData) {
+    setPrevData(data);
+    if (awaiting && data.current_version === awaiting && data.progress.state === "idle") {
+      setDone(awaiting);
+      setAwaiting(null);
+    } else if (awaiting && data.progress.state === "error") {
+      setAwaiting(null);
+    }
+  }
+  useEffect(() => {
+    if (done) toast.success(t("vos_update.toast_done", { version: done }));
+  }, [done, t]);
+
+  const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : t("vos_update.toast_error"));
+  const doInstall = (r: QmRelease) => {
+    setConfirm(null);
+    setDone(null);
+    install.mutate(r.tag, { onSuccess: () => setAwaiting(r.version), onError });
+  };
+
+  const p = data?.progress;
+  const busy = !!p && (p.state === "downloading" || p.state === "installing" || p.state === "restarting");
+  const restarting = p?.state === "restarting" || (awaiting !== null && (isError || data?.current_version !== awaiting));
+  const latest = data?.releases.find((r) => r.version === data.latest_version) ?? null;
+  const pct = p && p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+
+  return (
+    <div className="@container/main mx-auto flex flex-col gap-6">
+      <PageHeader icon={DownloadCloudIcon} title={t("vos_update.page_title")} description={t("vos_update.page_description")} />
+      <motion.div
+        className="grid grid-cols-1 items-start gap-4 @3xl/main:grid-cols-2"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* ── Current version and the latest release ─────────────────────── */}
+        <motion.div variants={itemVariants}>
+          <Card className="@container/card">
+            <CardHeader>
+              <CardTitle>{t("vos_update.card_title")}</CardTitle>
+              <CardDescription>{t("vos_update.card_description")}</CardDescription>
+              {data && (
+                <CardAction>
+                  <StateBadge data={data} />
+                </CardAction>
+              )}
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {isLoading || !data ? (
+                <div className="grid gap-3">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-9 w-32" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <Row
+                      label={t("vos_update.installed")}
+                      value={data.release_build ? data.current_version : t("vos_update.dev_build", { v: data.current_version })}
+                    />
+                    <Row label={t("vos_update.latest")} value={data.latest_version || "–"} />
+                    {data.checked_at > 0 && (
+                      <Row
+                        label={t("vos_update.checked")}
+                        value={new Date(data.checked_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      />
+                    )}
+                  </div>
+
+                  {data.rolled_back_from && (
+                    <div className="flex gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm">
+                      <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" />
+                      <p>{t("vos_update.rolled_back", { version: data.rolled_back_from })}</p>
+                    </div>
+                  )}
+                  {data.error && <p className="text-sm text-destructive break-words">{data.error}</p>}
+                  {p?.state === "error" && p.message && (
+                    <p className="text-sm text-destructive break-words">
+                      {t("vos_update.failed", { version: p.target, error: p.message })}
+                    </p>
+                  )}
+
+                  {busy || restarting ? (
+                    <div className="grid gap-2 rounded-lg border bg-muted/30 p-4" aria-live="polite">
+                      <p className="text-sm font-medium">
+                        {p?.state === "downloading"
+                          ? t("vos_update.downloading", { version: p.target })
+                          : p?.state === "installing"
+                            ? t("vos_update.installing", { version: p.target })
+                            : t("vos_update.restarting", { version: awaiting ?? p?.target })}
+                      </p>
+                      {p?.state === "downloading" && p.total > 0 && (
+                        <>
+                          <Progress value={pct} aria-label={t("vos_update.downloading", { version: p.target })} />
+                          <p className="text-xs tabular-nums text-muted-foreground">
+                            {formatMB(p.done)} / {formatMB(p.total)}
+                          </p>
+                        </>
+                      )}
+                      {restarting && <p className="text-xs text-muted-foreground">{t("vos_update.restarting_hint")}</p>}
+                    </div>
+                  ) : data.verifying ? (
+                    <p className="text-sm text-muted-foreground">
+                      {t("vos_update.verifying", { version: data.current_version })}
+                    </p>
+                  ) : null}
+
+                  {data.update_available && latest && !busy && !restarting && (
+                    <div className="grid gap-2 rounded-lg border p-4">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium">{latest.title}</p>
+                        <span className="text-xs text-muted-foreground">{fmtDate(latest.published_at, i18n.language)}</span>
+                      </div>
+                      <Notes release={latest} />
+                      <Button className="w-fit" onClick={() => setConfirm(latest)}>
+                        <DownloadIcon className="size-4" />
+                        {t("vos_update.install_version", { version: latest.version })}
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => check.mutate(undefined, { onError })} disabled={check.isPending || busy}>
+                      <RefreshCwIcon className={cn("size-4", check.isPending && "animate-spin")} />
+                      {t("vos_update.check_now")}
+                    </Button>
+                    {data.can_rollback && (
+                      <Button variant="outline" onClick={() => setConfirmRollback(true)} disabled={busy || rollback.isPending}>
+                        <RotateCcwIcon className="size-4" />
+                        {data.previous_version
+                          ? t("vos_update.rollback_to", { version: data.previous_version })
+                          : t("vos_update.rollback")}
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t("vos_update.safety_note")}</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* ── All releases: reinstall or downgrade ───────────────────────── */}
+        <motion.div variants={itemVariants}>
+          <Card className="@container/card">
+            <CardHeader>
+              <CardTitle>{t("vos_update.versions_title")}</CardTitle>
+              <CardDescription>{t("vos_update.versions_description")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading || !data ? (
+                <div className="grid gap-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : data.releases.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("vos_update.no_releases")}</p>
+              ) : (
+                <ul className="divide-y">
+                  {data.releases.map((r) => (
+                    <li key={r.tag} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="grid gap-0.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium tabular-nums">{r.version}</span>
+                          {r.current && (
+                            <Badge variant="outline" className="border-success/30 bg-success/15 text-success">
+                              <CheckCircle2Icon className="size-3" />
+                              {t("vos_update.tag_installed")}
+                            </Badge>
+                          )}
+                          {r.version === data.latest_version && !r.current && (
+                            <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+                              {t("vos_update.tag_latest")}
+                            </Badge>
+                          )}
+                          {r.prerelease && (
+                            <Badge variant="outline" className="border-warning/30 bg-warning/15 text-warning">
+                              {t("vos_update.tag_prerelease")}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {fmtDate(r.published_at, i18n.language)} · {formatMB(r.size)}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={r.current || busy || restarting}
+                        onClick={() => setConfirm(r)}
+                      >
+                        {r.version.localeCompare(data.current_version, undefined, { numeric: true }) < 0 && data.release_build
+                          ? t("vos_update.downgrade")
+                          : t("vos_update.install")}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
+
+      <InstallDialog
+        release={confirm}
+        current={data?.current_version ?? ""}
+        onConfirm={doInstall}
+        onClose={() => setConfirm(null)}
+      />
+      <AlertDialog open={confirmRollback} onOpenChange={setConfirmRollback}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {data?.previous_version
+                ? t("vos_update.rollback_to", { version: data.previous_version })
+                : t("vos_update.rollback")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("vos_update.rollback_body")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("actions.cancel", { ns: "common" })}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const target = data?.previous_version || null;
+                setDone(null);
+                rollback.mutate(undefined, {
+                  onSuccess: () => setAwaiting(target),
+                  onError,
+                });
+              }}
+            >
+              {t("vos_update.rollback")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

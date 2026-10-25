@@ -32,7 +32,6 @@ export const HIDDEN_ROUTES: Record<string, string> = {
   "/system-settings/config-backup": "Restore only rewrites QManager's files and never applies modem settings",
   "/system-settings/connection-quality": "Nothing reads these settings yet",
   "/system-settings/adaptive-polling": "The poller ignores these settings",
-  "/system-settings/software-update": "Disabled: an upstream update would replace this build",
 };
 
 /**

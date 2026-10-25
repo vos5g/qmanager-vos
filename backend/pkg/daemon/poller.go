@@ -890,10 +890,15 @@ func parseQuectelQENG(resp string, netType, serviceStatus, carrier, lteBand *str
 // qmanagerVersionFile is written by the installer; fallback keeps a sane default.
 const qmanagerVersionFile = "/data/vosclean/qm/etc/VERSION"
 
-var qmanagerVersionFallback = "v1.5.6"
+// qmanagerVersionFallback is stamped by release builds (-X ...=v1.2.0); local
+// builds report "dev".
+var qmanagerVersionFallback = "dev"
 
-// readQManagerVersion returns the running QManager version from the version file
-// written by install.sh (/etc/qmanager/VERSION), falling back to v1.5.4.
+// Version is the running QManager version.
+func Version() string { return readQManagerVersion() }
+
+// readQManagerVersion returns the running QManager version: the version file
+// if one was written, else the version stamped into the build.
 func readQManagerVersion() string {
 	raw, err := os.ReadFile(qmanagerVersionFile)
 	if err != nil {

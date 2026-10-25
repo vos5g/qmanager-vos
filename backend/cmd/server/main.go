@@ -110,6 +110,7 @@ func main() {
 	api.StartNotifier()
 	api.StartDNSProxy()
 	api.StartLED()
+	api.StartUpdater()
 	log.Println("[Daemon] Background Watchdog started (settings from the Watchdog page)")
 
 	// Register API Routes

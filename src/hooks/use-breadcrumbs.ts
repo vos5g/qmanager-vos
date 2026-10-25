@@ -32,6 +32,7 @@ const routeNameMap: Record<string, string> = {
   'ip-passthrough': 'IP Passthrough',
   'custom-dns': 'DNS & Ad Blocking',
   'status-light': 'Status Light',
+  'software-update': 'Software Update',
   'ttl-settings': 'TTL & MTU Settings',
   monitoring: 'Monitoring',
   latency: 'Latency Monitor',

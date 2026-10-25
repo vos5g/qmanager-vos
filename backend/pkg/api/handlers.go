@@ -143,7 +143,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	// System Management & Update Routes — Auth Required
 	mux.HandleFunc("/cgi-bin/quecmanager/system/ssh_password.sh", RequireAuth(s.HandleSSHPassword))
-	mux.HandleFunc("/cgi-bin/quecmanager/system/update.sh", RequireAuth(updatesDisabled))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/update.sh", RequireAuth(s.HandleUpdate))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/update_upload.sh", RequireAuth(updatesDisabled))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/pending_reboot.sh", RequireAuth(s.HandlePendingReboot))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/known_sims.sh", RequireAuth(s.HandleKnownSims))

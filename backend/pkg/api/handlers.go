@@ -114,6 +114,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/network/lan_config.sh", RequireAuth(s.HandleLANConfig))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/lan_devices.sh", RequireAuth(s.HandleLANDevices))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/dns.sh", RequireAuth(s.HandleDNS))
+	mux.HandleFunc("/cgi-bin/quecmanager/network/dns_proxy.sh", RequireAuth(s.HandleDNSProxy))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/mtu.sh", RequireAuth(s.HandleMTU))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/ip_passthrough.sh", RequireAuth(s.HandleIPPassthrough))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/traffic_masquerade.sh", RequireAuth(s.HandleTrafficMasquerade))
@@ -1093,17 +1094,27 @@ func applyCustomDNS(enabled bool, servers ...string) error {
 	if enabled && len(list) == 0 {
 		return fmt.Errorf("no DNS servers given")
 	}
-	flag := "no"
-	if enabled {
-		flag = "yes"
-	}
-	conf := fmt.Sprintf("# written by QManager - applied by: vosclean dns\nDNS_ENABLE=%s\nDNS_SERVERS=\"%s\"\n", flag, strings.Join(list, " "))
-	if err := vosWriteFileDurable("/data/vosclean/etc/dns.conf", []byte(conf), 0644); err != nil {
+	// Keep the Ad Blocking / Encrypted DNS redirect while the proxy runs.
+	if err := writeDNSConfFile(enabled, list, dnsProxyWanted()); err != nil {
 		return err
 	}
-	out, err := exec.Command("/data/vosclean/bin/vosclean", "dns").CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("vosclean dns: %v: %s", err, strings.TrimSpace(string(out)))
+	return dnsVoscleanApply()
+}
+
+// vosDNSConfFile is read by vosclean's dns.sh.
+var vosDNSConfFile = "/data/vosclean/etc/dns.conf"
+
+// writeDNSConfFile writes the plain custom resolvers and whether vosclean
+// should send DNS to QManager's proxy instead (DNS_PROXY, see
+// zz_vosclean_dnsproxy.go). Only validated IPv4 literals reach the file.
+func writeDNSConfFile(enabled bool, servers []string, proxy bool) error {
+	yn := func(b bool) string {
+		if b {
+			return "yes"
+		}
+		return "no"
 	}
-	return nil
+	conf := fmt.Sprintf("# written by QManager - applied by: vosclean dns\nDNS_ENABLE=%s\nDNS_SERVERS=\"%s\"\nDNS_PROXY=%s\nDNS_PROXY_PORT=%s\n",
+		yn(enabled), strings.Join(servers, " "), yn(proxy), strings.TrimPrefix(dnsProxyAddr, "127.0.0.1:"))
+	return vosWriteFileDurable(vosDNSConfFile, []byte(conf), 0644)
 }

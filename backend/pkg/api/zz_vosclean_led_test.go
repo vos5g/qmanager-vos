@@ -24,14 +24,18 @@ func TestLEDOffOnAndSchedule(t *testing.T) {
 	ledSavedFile = filepath.Join(dir, "saved.json")
 	ledRegmap = filepath.Join(dir, "regmap")
 	ledGPIO = filepath.Join(dir, "gpio15")
-	os.WriteFile(ledGPIO, []byte("0\n"), 0644)
+	if err := os.WriteFile(ledGPIO, []byte("0\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// debugfs regmap selects a register by writing "address" and reads it back
 	// as "c240: 01" from "data". Plain files can't do that by themselves, so
 	// mirror() copies between the data files and this map before each request.
 	regs := map[string]string{"spmi0-08 0xC240": "01", "spmi0-09 0xbd46": "80"}
 	for _, r := range ledRegs {
-		os.MkdirAll(filepath.Join(ledRegmap, r.Dev), 0755)
+		if err := os.MkdirAll(filepath.Join(ledRegmap, r.Dev), 0755); err != nil {
+			t.Fatal(err)
+		}
 	}
 	mirror := func() {
 		for _, r := range ledRegs {
@@ -44,7 +48,9 @@ func TestLEDOffOnAndSchedule(t *testing.T) {
 					regs[k] = "0" + regs[k]
 				}
 			}
-			os.WriteFile(base+"/data", []byte(strings.ToLower(strings.TrimPrefix(string(a), "0x"))+": "+regs[k]), 0644)
+			if err := os.WriteFile(base+"/data", []byte(strings.ToLower(strings.TrimPrefix(string(a), "0x"))+": "+regs[k]), 0644); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	svc := []string{}
@@ -54,7 +60,9 @@ func TestLEDOffOnAndSchedule(t *testing.T) {
 	// regRead writes address then reads data: prime data for each register.
 	readAll := func() {
 		for _, r := range ledRegs {
-			os.WriteFile(filepath.Join(ledRegmap, r.Dev, "address"), []byte(r.Addr), 0644)
+			if err := os.WriteFile(filepath.Join(ledRegmap, r.Dev, "address"), []byte(r.Addr), 0644); err != nil {
+				t.Fatal(err)
+			}
 		}
 		mirror()
 	}
@@ -70,7 +78,9 @@ func TestLEDOffOnAndSchedule(t *testing.T) {
 		rr := httptest.NewRecorder()
 		(&Server{}).HandleLED(rr, httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body)))
 		var out map[string]any
-		json.Unmarshal(rr.Body.Bytes(), &out)
+		if err := json.Unmarshal(rr.Body.Bytes(), &out); err != nil {
+			t.Fatalf("bad json %q", rr.Body.String())
+		}
 		return out
 	}
 	if out := post(`{"action":"save","mode":"schedule","off_from":"7:00","off_to":"08:00"}`); out["success"] != false {

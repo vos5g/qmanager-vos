@@ -220,7 +220,7 @@ func (p *Proxy) serveUDP(ctx context.Context) {
 				if len(resp) > 4096 {
 					resp = truncate(q)
 				}
-				p.udp.WriteTo(resp, from)
+				_, _ = p.udp.WriteTo(resp, from) // the client retries if a reply is lost
 			}
 		}(buf[:n], from)
 	}
@@ -240,7 +240,9 @@ func (p *Proxy) serveTCP(ctx context.Context) {
 		go func(c net.Conn) {
 			defer c.Close()
 			for {
-				c.SetDeadline(time.Now().Add(10 * time.Second))
+				if c.SetDeadline(time.Now().Add(10*time.Second)) != nil {
+					return
+				}
 				var l [2]byte
 				if _, err := readFull(c, l[:]); err != nil {
 					return
@@ -416,30 +418,31 @@ func replyHeader(h dnsmessage.Header, rcode dnsmessage.RCode) dnsmessage.Header 
 	}
 }
 
-// blockedReply answers A with 0.0.0.0, AAAA with ::, anything else with no data.
-func blockedReply(h dnsmessage.Header, q dnsmessage.Question) []byte {
-	b := dnsmessage.NewBuilder(nil, replyHeader(h, dnsmessage.RCodeSuccess))
-	b.EnableCompression()
-	b.StartQuestions()
-	b.Question(q)
-	b.StartAnswers()
-	rh := dnsmessage.ResourceHeader{Name: q.Name, Class: q.Class, TTL: 60}
-	switch q.Type {
-	case dnsmessage.TypeA:
-		b.AResource(rh, dnsmessage.AResource{})
-	case dnsmessage.TypeAAAA:
-		b.AAAAResource(rh, dnsmessage.AAAAResource{})
+// pack builds a reply with one question and the given answers. Message.Pack
+// reports a single error instead of one per builder step.
+func pack(h dnsmessage.Header, q dnsmessage.Question, answers ...dnsmessage.Resource) []byte {
+	m := dnsmessage.Message{Header: h, Questions: []dnsmessage.Question{q}, Answers: answers}
+	out, err := m.Pack()
+	if err != nil {
+		return nil
 	}
-	out, _ := b.Finish()
 	return out
 }
 
+// blockedReply answers A with 0.0.0.0, AAAA with ::, anything else with no data.
+func blockedReply(h dnsmessage.Header, q dnsmessage.Question) []byte {
+	rh := dnsmessage.ResourceHeader{Name: q.Name, Class: q.Class, TTL: 60}
+	switch q.Type {
+	case dnsmessage.TypeA:
+		return pack(replyHeader(h, dnsmessage.RCodeSuccess), q, dnsmessage.Resource{Header: rh, Body: &dnsmessage.AResource{}})
+	case dnsmessage.TypeAAAA:
+		return pack(replyHeader(h, dnsmessage.RCodeSuccess), q, dnsmessage.Resource{Header: rh, Body: &dnsmessage.AAAAResource{}})
+	}
+	return pack(replyHeader(h, dnsmessage.RCodeSuccess), q)
+}
+
 func servfail(h dnsmessage.Header, q dnsmessage.Question) []byte {
-	b := dnsmessage.NewBuilder(nil, replyHeader(h, dnsmessage.RCodeServerFailure))
-	b.StartQuestions()
-	b.Question(q)
-	out, _ := b.Finish()
-	return out
+	return pack(replyHeader(h, dnsmessage.RCodeServerFailure), q)
 }
 
 // truncate makes an empty TC=1 reply so the client retries over TCP.
@@ -455,9 +458,5 @@ func truncate(q []byte) []byte {
 	}
 	rh := replyHeader(h, dnsmessage.RCodeSuccess)
 	rh.Truncated = true
-	b := dnsmessage.NewBuilder(nil, rh)
-	b.StartQuestions()
-	b.Question(question)
-	out, _ := b.Finish()
-	return out
+	return pack(rh, question)
 }

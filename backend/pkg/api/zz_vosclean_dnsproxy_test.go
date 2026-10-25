@@ -27,7 +27,9 @@ func setupDNSProxyTest(t *testing.T) (dir string, applied *int) {
 	dnsCustomConfFile = filepath.Join(dir, "custom_dns.json")
 	dnsResolvConf = filepath.Join(dir, "resolv.conf")
 	vosDNSConfFile = filepath.Join(dir, "dns.conf")
-	os.WriteFile(dnsResolvConf, []byte("nameserver 192.0.2.53\nnameserver ::1\n"), 0644)
+	if err := os.WriteFile(dnsResolvConf, []byte("nameserver 192.0.2.53\nnameserver ::1\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	n := 0
 	applied = &n
 	dnsVoscleanApply = func() error { n++; return nil }
@@ -142,7 +144,9 @@ func TestDNSProxyEncryptedValidationAndCustomDNS(t *testing.T) {
 	if out["success"] != false {
 		t.Fatal("http DoH accepted")
 	}
-	os.WriteFile(dnsCustomConfFile, []byte(`{"mode":"enabled","dns1":"9.9.9.9","dns2":"bogus","dns3":""}`), 0644)
+	if err := os.WriteFile(dnsCustomConfFile, []byte(`{"mode":"enabled","dns1":"9.9.9.9","dns2":"bogus","dns3":""}`), 0644); err != nil {
+		t.Fatal(err)
+	}
 	out = postDNSProxy(t, map[string]any{"action": "save", "encrypted": map[string]any{"enabled": true, "provider": "quad9", "protocol": "dot", "fallback": true}})
 	if out["success"] != true {
 		t.Fatalf("save: %v", out)

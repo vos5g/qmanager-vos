@@ -298,7 +298,7 @@ func (s *dnsProxyState) applyLocked() error {
 func touchHeartbeat() {
 	now := time.Now()
 	if err := os.WriteFile(dnsHeartbeatFile, []byte(dnsProxyAddr+"\n"), 0644); err == nil {
-		os.Chtimes(dnsHeartbeatFile, now, now)
+		_ = os.Chtimes(dnsHeartbeatFile, now, now) // WriteFile already set it; best effort
 	}
 }
 

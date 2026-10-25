@@ -107,7 +107,7 @@ func (c *cache) get(key string, id uint16) []byte {
 		return nil
 	}
 	age := uint32(now.Sub(e.stored) / time.Second)
-	m.Header.ID = id
+	m.ID = id
 	for _, sec := range [][]dnsmessage.Resource{m.Answers, m.Authorities, m.Additionals} {
 		for i := range sec {
 			if sec[i].Header.Type == dnsmessage.TypeOPT {

@@ -92,16 +92,19 @@ func (f *fakeUpstream) Exchange(_ context.Context, q []byte) ([]byte, error) {
 		return nil, err
 	}
 	qq, _ := p.Question()
-	b := dnsmessage.NewBuilder(nil, dnsmessage.Header{ID: h.ID, Response: true, RecursionAvailable: true})
-	b.StartQuestions()
-	b.Question(qq)
-	b.StartAnswers()
 	ttl := f.ttl
 	if ttl == 0 {
 		ttl = 300
 	}
-	b.AResource(dnsmessage.ResourceHeader{Name: qq.Name, Class: qq.Class, TTL: ttl}, dnsmessage.AResource{A: [4]byte{192, 0, 2, 1}})
-	return b.Finish()
+	m := dnsmessage.Message{
+		Header:    dnsmessage.Header{ID: h.ID, Response: true, RecursionAvailable: true},
+		Questions: []dnsmessage.Question{qq},
+		Answers: []dnsmessage.Resource{{
+			Header: dnsmessage.ResourceHeader{Name: qq.Name, Class: qq.Class, TTL: ttl},
+			Body:   &dnsmessage.AResource{A: [4]byte{192, 0, 2, 1}},
+		}},
+	}
+	return m.Pack()
 }
 
 func query(t *testing.T, name string, typ dnsmessage.Type, id uint16) []byte {
@@ -141,8 +144,8 @@ func TestHandleBlockCacheFallback(t *testing.T) {
 
 	// Blocked A and AAAA.
 	m, a := answers(t, p.Handle(ctx, query(t, "x.ads.example.com", dnsmessage.TypeA, 7)))
-	if m.Header.ID != 7 || len(a) != 1 || a[0] != "0.0.0.0" {
-		t.Fatalf("blocked A: id=%d %v", m.Header.ID, a)
+	if m.ID != 7 || len(a) != 1 || a[0] != "0.0.0.0" {
+		t.Fatalf("blocked A: id=%d %v", m.ID, a)
 	}
 	_, a = answers(t, p.Handle(ctx, query(t, "ads.example.com", dnsmessage.TypeAAAA, 8)))
 	if len(a) != 1 || a[0] != "::" {
@@ -158,8 +161,8 @@ func TestHandleBlockCacheFallback(t *testing.T) {
 		t.Fatalf("forward: %v calls=%d", a, enc.calls.Load())
 	}
 	m, _ = answers(t, p.Handle(ctx, query(t, "GOOD.example.org", dnsmessage.TypeA, 10)))
-	if m.Header.ID != 10 || enc.calls.Load() != 1 {
-		t.Fatalf("cache: id=%d calls=%d", m.Header.ID, enc.calls.Load())
+	if m.ID != 10 || enc.calls.Load() != 1 {
+		t.Fatalf("cache: id=%d calls=%d", m.ID, enc.calls.Load())
 	}
 
 	// Encrypted fails -> plain fallback.
@@ -172,12 +175,12 @@ func TestHandleBlockCacheFallback(t *testing.T) {
 	// No fallback -> SERVFAIL.
 	p.Configure(enc, plain, false, false, nil, nil)
 	m, _ = answers(t, p.Handle(ctx, query(t, "third.example.org", dnsmessage.TypeA, 12)))
-	if m.Header.RCode != dnsmessage.RCodeServerFailure {
-		t.Fatalf("rcode %v", m.Header.RCode)
+	if m.RCode != dnsmessage.RCodeServerFailure {
+		t.Fatalf("rcode %v", m.RCode)
 	}
 	// Blocking off -> blocked name is forwarded (to the failing upstream).
 	m, _ = answers(t, p.Handle(ctx, query(t, "ads.example.com", dnsmessage.TypeA, 13)))
-	if m.Header.RCode != dnsmessage.RCodeServerFailure {
+	if m.RCode != dnsmessage.RCodeServerFailure {
 		t.Fatal("blocking off should forward")
 	}
 
@@ -205,8 +208,8 @@ func TestCacheAgesTTL(t *testing.T) {
 	c.put("k", resp)
 	now = now.Add(40 * time.Second)
 	m, _ := answers(t, c.get("k", 5))
-	if m.Answers[0].Header.TTL != 60 || m.Header.ID != 5 {
-		t.Fatalf("ttl %d id %d", m.Answers[0].Header.TTL, m.Header.ID)
+	if m.Answers[0].Header.TTL != 60 || m.ID != 5 {
+		t.Fatalf("ttl %d id %d", m.Answers[0].Header.TTL, m.ID)
 	}
 	now = now.Add(61 * time.Second)
 	if c.get("k", 5) != nil {

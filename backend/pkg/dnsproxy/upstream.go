@@ -103,7 +103,9 @@ func exchangeUDP(ctx context.Context, addr string, q []byte) ([]byte, error) {
 	}
 	defer c.Close()
 	if dl, ok := ctx.Deadline(); ok {
-		c.SetDeadline(dl)
+		if err := c.SetDeadline(dl); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := c.Write(q); err != nil {
 		return nil, err
@@ -129,7 +131,9 @@ func exchangeTCP(ctx context.Context, addr string, q []byte) ([]byte, error) {
 	}
 	defer c.Close()
 	if dl, ok := ctx.Deadline(); ok {
-		c.SetDeadline(dl)
+		if err := c.SetDeadline(dl); err != nil {
+			return nil, err
+		}
 	}
 	return streamExchange(c, q)
 }
@@ -251,10 +255,11 @@ func buildQuery(host string, t dnsmessage.Type) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := dnsmessage.NewBuilder(nil, dnsmessage.Header{ID: uint16(rand.Intn(65536)), RecursionDesired: true})
-	b.StartQuestions()
-	b.Question(dnsmessage.Question{Name: name, Type: t, Class: dnsmessage.ClassINET})
-	return b.Finish()
+	m := dnsmessage.Message{
+		Header:    dnsmessage.Header{ID: uint16(rand.Intn(65536)), RecursionDesired: true},
+		Questions: []dnsmessage.Question{{Name: name, Type: t, Class: dnsmessage.ClassINET}},
+	}
+	return m.Pack()
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +315,7 @@ func (d *DoHUpstream) Exchange(ctx context.Context, q []byte) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096)) // drain so the connection is reused
 		return nil, fmt.Errorf("DoH HTTP %d", resp.StatusCode)
 	}
 	out, err := io.ReadAll(io.LimitReader(resp.Body, 65535))
@@ -397,7 +402,11 @@ func (d *DoTUpstream) Exchange(ctx context.Context, q []byte) ([]byte, error) {
 		if cdl, ok := ctx.Deadline(); ok && cdl.Before(dl) {
 			dl = cdl
 		}
-		d.conn.SetDeadline(dl)
+		if err := d.conn.SetDeadline(dl); err != nil {
+			d.conn.Close()
+			d.conn = nil
+			return nil, err
+		}
 		resp, err := streamExchange(d.conn, q)
 		if err == nil {
 			d.used = time.Now()

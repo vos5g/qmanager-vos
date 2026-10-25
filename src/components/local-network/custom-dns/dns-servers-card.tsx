@@ -115,7 +115,25 @@ function ServersForm({ data }: { data: DnsProxyStatus }) {
 
   const fallbackTarget = isCustom || !provider?.plain ? t("dns_servers.fallback_carrier") : provider.label;
   const s = data.stats;
-  const showStats = data.resolver.mode === "custom" && data.resolver.protocol !== "plain" && data.running && s;
+  // Live stats belong to the saved setup, so hide them while editing.
+  const showStats =
+    !dirty && data.resolver.mode === "custom" && data.resolver.protocol !== "plain" && data.running && s;
+
+  // What the current choice resolves to: servers, encrypted address, fallback.
+  const details: [string, string][] = [];
+  if (provider && protocol === "plain") {
+    details.push([t("dns_servers.detail_servers"), provider.ipv4.join(", ")]);
+  } else if (encrypted) {
+    if (provider) details.push([t("dns_servers.detail_address"), protocol === "dot" ? provider.dot : provider.doh]);
+    details.push([
+      t("dns_servers.detail_fallback"),
+      !form.fallback
+        ? t("dns_servers.detail_fallback_off")
+        : provider?.plain
+          ? provider.ipv4.join(", ")
+          : t("dns_servers.badge_carrier"),
+    ]);
+  }
 
   const onSave = () =>
     saveResolver.mutate(request(), {
@@ -187,10 +205,6 @@ function ServersForm({ data }: { data: DnsProxyStatus }) {
                 : t("dns_servers.hint_plain")}
         </FieldDescription>
 
-        {provider && !isCarrier && protocol === "plain" && (
-          <p className="text-sm tabular-nums text-muted-foreground">{provider.ipv4.join(", ")}</p>
-        )}
-
         {isCustom && protocol === "plain" && (
           <div className="grid gap-4 @md/card:grid-cols-2">
             <Field>
@@ -259,19 +273,26 @@ function ServersForm({ data }: { data: DnsProxyStatus }) {
         )}
       </FieldGroup>
 
-      {showStats && s && (
+      {(details.length > 0 || (showStats && s)) && (
         <div className="grid gap-2 rounded-lg border bg-muted/30 p-4">
-          <StatRow label={t("dns_proxy.stat_resolver")} value={s.upstream} />
-          <StatRow label={t("dns_proxy.stat_latency")} value={s.latency_ms ? `${s.latency_ms} ms` : "–"} />
-          <StatRow label={t("dns_proxy.stat_encrypted")} value={s.encrypted.toLocaleString()} />
-          <StatRow label={t("dns_proxy.stat_fallback")} value={s.fallback.toLocaleString()} />
-          {s.last_error && (
-            <p className="pt-1 text-xs text-muted-foreground break-words">
-              {t("dns_proxy.stat_last_error", {
-                time: new Date(s.last_error_at * 1000).toLocaleTimeString(),
-                error: s.last_error,
-              })}
-            </p>
+          {details.map(([label, value]) => (
+            <StatRow key={label} label={label} value={<span className="break-all">{value}</span>} />
+          ))}
+          {showStats && s && (
+            <>
+              {details.length > 0 && <div className="my-1 border-t" />}
+              <StatRow label={t("dns_proxy.stat_latency")} value={s.latency_ms ? `${s.latency_ms} ms` : "–"} />
+              <StatRow label={t("dns_proxy.stat_encrypted")} value={s.encrypted.toLocaleString()} />
+              <StatRow label={t("dns_proxy.stat_fallback")} value={s.fallback.toLocaleString()} />
+              {s.last_error && (
+                <p className="pt-1 text-xs text-muted-foreground break-words">
+                  {t("dns_proxy.stat_last_error", {
+                    time: new Date(s.last_error_at * 1000).toLocaleTimeString(),
+                    error: s.last_error,
+                  })}
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

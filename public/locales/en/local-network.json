@@ -448,6 +448,10 @@
     "bad_url": "Enter a host name, e.g. dns.example.com/dns-query.",
     "fallback_carrier": "your carrier's DNS",
     "fallback_hint": "If the encrypted connection fails, ask {{plain}} without encryption so the internet keeps working. Plain DNS is also used for a moment after a restart, until the stick's clock is set.",
-    "toast_saved": "DNS servers updated"
+    "toast_saved": "DNS servers updated",
+    "detail_servers": "Servers",
+    "detail_address": "Address",
+    "detail_fallback": "Fallback",
+    "detail_fallback_off": "Off"
   }
 }

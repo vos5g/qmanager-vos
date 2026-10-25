@@ -15,7 +15,7 @@ const CustomDNSComponent = () => {
       title={t("dns.page_title")}
       description={t("dns.page_description")}
     />
-      <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
+      <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row items-start gap-4">
         <DNSServersCard />
         <AdBlockingCard />
       </div>

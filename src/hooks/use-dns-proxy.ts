@@ -73,6 +73,10 @@ export interface DnsProvider {
   ipv4: string[];
   /** Also answers unencrypted DNS */
   plain: boolean;
+  /** DNS over HTTPS URL */
+  doh: string;
+  /** DNS over TLS address, tls://host */
+  dot: string;
 }
 
 export interface DnsProxyStatus {

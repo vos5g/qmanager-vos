@@ -604,7 +604,8 @@ func (s *dnsProxyState) snapshot() map[string]any {
 
 	var providers []map[string]any
 	for _, p := range dnsproxy.Providers {
-		providers = append(providers, map[string]any{"id": p.ID, "label": p.Label, "ipv4": p.IPs, "plain": p.Plain})
+		providers = append(providers, map[string]any{"id": p.ID, "label": p.Label, "ipv4": p.IPs, "plain": p.Plain,
+			"doh": p.DoH, "dot": "tls://" + p.DoTHost})
 	}
 	var lists []map[string]any
 	for _, p := range blocklistPresets {

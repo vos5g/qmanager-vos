@@ -167,3 +167,9 @@ On the VOS stick the page is **DNS & Ad Blocking** with two cards, both served b
 * `applyCustomDNS` (upstream `dns.sh` handler) keeps `DNS_PROXY` via `dnsProxyWanted()` so it never drops the redirect.
 * Save failures roll back to the previous working setup.
 * Clients with their own DNS (Private DNS, iCloud Private Relay, browser DoH) and a WireGuard config's own DNS bypass the proxy.
+
+### Pause and history (v1.2)
+
+* `pause {minutes}` (0 = until resumed) / `resume`: the proxy skips the blocklist until then. The end time is saved in `dns_proxy.json` (`paused_until`, -1 = until resumed), so a restart keeps it.
+* History (`zz_vosclean_dnsstats.go`): every 30 s the proxy's counters since the last sample are added to today's bucket, and its per-name blocked counts are drained into a persistent top list (trimmed to 1000 names). This is stored in `/data/vosclean/qm/etc/dns_stats.json`, written every 10 minutes and on shutdown, and keeps 30 days; the UI shows 14. `reset_stats` clears it.
+* `vosclean_ready` is false when `/data/vosclean/bin/dns.sh` predates `DNS_PROXY`; the page then asks for an `install.sh` run.

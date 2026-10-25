@@ -61,7 +61,8 @@
     "support": "Support",
     "donate": "Donate to the Project",
     "languages": "Languages",
-    "forwarding": "Forwarding"
+    "forwarding": "Forwarding",
+    "status_light": "Status Light"
   },
   "switcher": {
     "opens_new_tab": "Opens in a new tab"

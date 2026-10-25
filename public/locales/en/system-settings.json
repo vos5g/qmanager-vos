@@ -746,5 +746,30 @@
     "toast_in_use": "{{name}} is switched off but still in use; it unloads at the next reboot.",
     "toast_not_loaded": "{{name}} is switched on but didn't load. See Recent activity.",
     "toast_failed": "Couldn't change {{name}}"
+  },
+  "status_light": {
+    "page_title": "Status Light",
+    "page_description": "Turn the stick's LED off, or only at night.",
+    "card_title": "LED",
+    "card_description": "The light shows whether the stick is connected. Switching it off doesn't affect the connection.",
+    "badge_on": "On",
+    "badge_off": "Off",
+    "badge_night": "Off for the night",
+    "mode": "Light",
+    "mode_on": "Normal",
+    "mode_schedule": "Off at night",
+    "mode_off": "Always off",
+    "mode_on_hint": "The light follows the connection, as it came from the factory.",
+    "mode_schedule_hint": "The light goes off between the times below and back on afterwards.",
+    "mode_off_hint": "The light stays off. It comes back on for a moment after a restart, until QManager has started.",
+    "off_from": "Off from",
+    "off_to": "Back on at",
+    "same_times": "Choose two different times.",
+    "device_time": "Times are in {{zone}}, where it's {{time}} now. Saving uses this browser's time zone.",
+    "clock_wait": "The stick's clock isn't set yet; the schedule starts once it is.",
+    "note": "While the light is off, Tri Cascade's LED service is paused; it starts again when the light comes back on.",
+    "save": "Save",
+    "toast_saved": "Status light updated",
+    "toast_error": "Couldn't change the status light"
   }
 }

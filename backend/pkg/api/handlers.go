@@ -115,6 +115,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/network/lan_devices.sh", RequireAuth(s.HandleLANDevices))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/dns.sh", RequireAuth(s.HandleDNS))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/dns_proxy.sh", RequireAuth(s.HandleDNSProxy))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/led.sh", RequireAuth(s.HandleLED))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/mtu.sh", RequireAuth(s.HandleMTU))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/ip_passthrough.sh", RequireAuth(s.HandleIPPassthrough))
 	mux.HandleFunc("/cgi-bin/quecmanager/network/traffic_masquerade.sh", RequireAuth(s.HandleTrafficMasquerade))

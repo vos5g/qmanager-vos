@@ -109,6 +109,7 @@ func main() {
 	api.StartDataUsage()
 	api.StartNotifier()
 	api.StartDNSProxy()
+	api.StartLED()
 	log.Println("[Daemon] Background Watchdog started (settings from the Watchdog page)")
 
 	// Register API Routes
@@ -199,6 +200,7 @@ func main() {
 	watchdog.Stop()
 	api.SaveDataUsage()
 	api.StopDNSProxy()
+	api.StopLED()
 
 	// Shutdown HTTPS server if running
 	if tlsServer != nil {

@@ -3,7 +3,8 @@
 import { useTranslation } from "react-i18next";
 import { Globe2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import CustomDNSCard from "./custom-dns-card";
+import DNSServersCard from "./dns-servers-card";
+import AdBlockingCard from "./ad-blocking-card";
 
 const CustomDNSComponent = () => {
   const { t } = useTranslation("local-network");
@@ -15,7 +16,8 @@ const CustomDNSComponent = () => {
       description={t("dns.page_description")}
     />
       <div className="grid grid-cols-1 @3xl/main:grid-cols-2 grid-flow-row gap-4">
-        <CustomDNSCard />
+        <DNSServersCard />
+        <AdBlockingCard />
       </div>
     </div>
   );

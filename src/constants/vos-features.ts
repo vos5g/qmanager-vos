@@ -40,7 +40,7 @@ export const HIDDEN_ROUTES: Record<string, string> = {
  * for it becomes. An entry whose target is already in the same menu is dropped.
  */
 export const ROUTE_REDIRECTS: Record<string, { to: string; t_key?: string; title?: string }> = {
-  "/local-network": { to: "/local-network/custom-dns", t_key: "custom_dns", title: "Custom DNS" },
+  "/local-network": { to: "/local-network/custom-dns", t_key: "custom_dns", title: "DNS & Ad Blocking" },
   "/cellular/custom-profiles": {
     to: "/cellular/custom-profiles/connection-scenarios",
     t_key: "connection_scenarios",

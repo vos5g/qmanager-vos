@@ -70,7 +70,7 @@ const SECTION_NAV_DATA: Record<SectionType, SubNavItem[]> = {
   ],
   "local-network": [
     { title: "LAN & Devices", href: "/local-network", icon: Network },
-    { title: "Custom DNS", href: "/local-network/custom-dns", icon: Globe },
+    { title: "DNS & Ad Blocking", href: "/local-network/custom-dns", icon: Globe },
     { title: "Traffic Engine", href: "/local-network/traffic-engine", icon: Cpu },
     { title: "IP Passthrough", href: "/local-network/ip-passthrough", icon: ArrowRightLeft },
     { title: "DPI Masking", href: "/local-network/dpi-masking", icon: EyeOff },

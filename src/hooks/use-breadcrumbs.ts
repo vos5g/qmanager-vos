@@ -30,7 +30,7 @@ const routeNameMap: Record<string, string> = {
   'fplmn-settings': 'FPLMN Settings',
   'local-network': 'Local Network',
   'ip-passthrough': 'IP Passthrough',
-  'custom-dns': 'Custom DNS',
+  'custom-dns': 'DNS & Ad Blocking',
   'ttl-settings': 'TTL & MTU Settings',
   monitoring: 'Monitoring',
   latency: 'Latency Monitor',

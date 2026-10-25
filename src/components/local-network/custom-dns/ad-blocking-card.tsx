@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronDownIcon, RefreshCwIcon } from "lucide-react";
+import { ChevronDownIcon, PlayIcon, RefreshCwIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { parseDomainList, useDnsProxy, type DnsProxyStatus } from "@/hooks/use-dns-proxy";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { parseDomainList, useDnsProxy, type DnsHistory, type DnsProxyStatus } from "@/hooks/use-dns-proxy";
 import { DnsProxyBadge, StatRow, type DnsProxyBadgeState } from "./dns-proxy-badge";
 
 const DOMAIN_RE = /^(\*\.)?([a-z0-9_-]{1,63}\.)+[a-z0-9-]*[a-z][a-z0-9-]*\.?$/i;
@@ -40,6 +52,7 @@ function blockingBadge(d: DnsProxyStatus, t: (k: string) => string): { state: Dn
   const b = d.blocking;
   if (!b.enabled) return { state: "off" };
   if (!d.running || !d.redirect_active) return { state: "warning", label: t("dns_proxy.status_not_running") };
+  if (b.paused_until !== 0) return { state: "warning", label: t("dns_proxy.status_paused") };
   if (b.updating && b.domain_count === 0) return { state: "warning", label: t("dns_proxy.status_downloading") };
   if (b.domain_count === 0 && b.denylist.length === 0) return { state: "warning", label: t("dns_proxy.status_no_list") };
   return { state: "active", label: t("dns_proxy.status_blocking") };
@@ -72,6 +85,162 @@ function badURLs(text: string) {
     .split(/\s+/)
     .filter(Boolean)
     .filter((u) => !/^https?:\/\/[^\s/]+/i.test(u));
+}
+
+function percent(blocked: number, queries: number) {
+  return queries > 0 ? Math.round((blocked / queries) * 100) : 0;
+}
+
+function PauseControl({ data }: { data: DnsProxyStatus }) {
+  const { t } = useTranslation("local-network");
+  const { pause, resume } = useDnsProxy();
+  const until = data.blocking.paused_until;
+  const onError = (e: unknown) => toast.error(e instanceof Error ? e.message : t("dns_proxy.toast_error"));
+  if (until !== 0) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+        <p className="text-sm">
+          {until === -1
+            ? t("dns_proxy.paused_indefinitely")
+            : t("dns_proxy.paused_until", {
+                time: new Date(until * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              })}
+        </p>
+        <Button type="button" size="sm" onClick={() => resume.mutate(undefined, { onError })} disabled={resume.isPending}>
+          <PlayIcon className="size-3.5" />
+          {t("dns_proxy.resume")}
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-sm text-muted-foreground">{t("dns_proxy.pause_label")}</span>
+      {[
+        { minutes: 5, label: t("dns_proxy.pause_5m") },
+        { minutes: 60, label: t("dns_proxy.pause_1h") },
+        { minutes: 0, label: t("dns_proxy.pause_until_resumed") },
+      ].map((o) => (
+        <Button
+          key={o.minutes}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => pause.mutate(o.minutes, { onError })}
+          disabled={pause.isPending}
+        >
+          {o.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function BlockedHistory({ history }: { history: DnsHistory }) {
+  const { t, i18n } = useTranslation("local-network");
+  const { resetStats } = useDnsProxy();
+  const max = Math.max(1, ...history.days.map((d) => d.queries));
+  const fmt = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language, { day: "numeric", month: "short" });
+  const today = history.today;
+  return (
+    <div className="grid gap-3 rounded-lg border p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="text-sm font-medium">{t("dns_proxy.history_title")}</p>
+        <p className="text-sm tabular-nums text-muted-foreground">
+          {t("dns_proxy.history_today", {
+            blocked: today.blocked.toLocaleString(),
+            total: today.queries.toLocaleString(),
+            pct: percent(today.blocked, today.queries),
+          })}
+        </p>
+      </div>
+      <div className="grid gap-1.5">
+        <div className="flex h-20 items-end gap-[3px]" role="img" aria-label={t("dns_proxy.history_aria")}>
+          {history.days.map((d) => (
+            <Tooltip key={d.date}>
+              <TooltipTrigger asChild>
+                <div className="relative flex h-full flex-1 items-end">
+                  <div
+                    className={cn("w-full rounded-sm", d.queries > 0 ? "bg-muted-foreground/20" : "bg-muted")}
+                    style={{ height: `${d.queries > 0 ? Math.max(4, (d.queries / max) * 100) : 4}%` }}
+                  >
+                    {d.blocked > 0 && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 rounded-sm bg-primary/70"
+                        style={{ height: `${Math.max(3, (d.blocked / max) * 100)}%` }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="tabular-nums">
+                  {t("dns_proxy.history_tooltip", {
+                    date: fmt(d.date),
+                    blocked: d.blocked.toLocaleString(),
+                    total: d.queries.toLocaleString(),
+                  })}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>{history.days.length ? fmt(history.days[0].date) : ""}</span>
+          <span>{t("dns_proxy.history_today_label")}</span>
+        </div>
+        <div className="flex gap-4 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2 rounded-sm bg-primary/70" aria-hidden />
+            {t("dns_proxy.legend_blocked")}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2 rounded-sm bg-muted-foreground/20" aria-hidden />
+            {t("dns_proxy.legend_lookups")}
+          </span>
+        </div>
+      </div>
+      {history.top.length > 0 && (
+        <div className="grid gap-1 border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground">{t("dns_proxy.top_blocked")}</p>
+          <ul className="grid gap-0.5">
+            {history.top.slice(0, 5).map((n) => (
+              <li key={n.name} className="flex justify-between gap-4 text-xs">
+                <span className="truncate">{n.name}</span>
+                <span className="tabular-nums text-muted-foreground">{n.count.toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+        <p className="text-xs text-muted-foreground">
+          {t("dns_proxy.history_since", {
+            date: new Date(history.since * 1000).toLocaleDateString(i18n.language, { day: "numeric", month: "short" }),
+            blocked: history.total.blocked.toLocaleString(),
+          })}
+        </p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+              {t("dns_proxy.reset_stats")}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("dns_proxy.reset_stats_title")}</AlertDialogTitle>
+              <AlertDialogDescription>{t("dns_proxy.reset_stats_description")}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("actions.cancel", { ns: "common" })}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => resetStats.mutate()}>{t("dns_proxy.reset_stats")}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
 }
 
 function DomainCheck() {
@@ -127,7 +296,6 @@ function BlockingForm({ data }: { data: DnsProxyStatus }) {
   );
   const set = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
   const b = data.blocking;
-  const s = data.stats;
 
   const allowBad = badDomains(form.allowlist);
   const denyBad = badDomains(form.denylist);
@@ -160,7 +328,6 @@ function BlockingForm({ data }: { data: DnsProxyStatus }) {
       },
     );
 
-  const pct = s && s.queries > 0 ? Math.round((s.blocked / s.queries) * 100) : 0;
   const updated = b.updated_at
     ? new Date(b.updated_at * 1000).toLocaleDateString(i18n.language, { day: "numeric", month: "short" })
     : null;
@@ -274,6 +441,8 @@ function BlockingForm({ data }: { data: DnsProxyStatus }) {
         />
       </form>
 
+      {b.enabled && <PauseControl data={data} />}
+
       {b.enabled && (
         <div className="grid gap-2 rounded-lg border bg-muted/30 p-4">
           <StatRow
@@ -281,19 +450,8 @@ function BlockingForm({ data }: { data: DnsProxyStatus }) {
             value={b.updating && b.domain_count === 0 ? t("dns_proxy.stat_downloading") : b.domain_count.toLocaleString()}
           />
           {updated && <StatRow label={t("dns_proxy.stat_updated")} value={updated} />}
-          {s && (
-            <StatRow
-              label={t("dns_proxy.stat_blocked")}
-              value={t("dns_proxy.stat_blocked_value", {
-                blocked: s.blocked.toLocaleString(),
-                total: s.queries.toLocaleString(),
-                pct,
-              })}
-            />
-          )}
           {b.update_error && <p className="text-xs text-warning break-words">{b.update_error}</p>}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <p className="text-xs text-muted-foreground">{t("dns_proxy.stat_since_start")}</p>
+          <div className="flex justify-end pt-1">
             <Button
               type="button"
               variant="outline"
@@ -309,22 +467,10 @@ function BlockingForm({ data }: { data: DnsProxyStatus }) {
               {b.updating ? t("dns_proxy.updating") : t("dns_proxy.update_now")}
             </Button>
           </div>
-          {s?.top_blocked && s.top_blocked.length > 0 && (
-            <div className="grid gap-1 border-t pt-3">
-              <p className="text-xs font-medium text-muted-foreground">{t("dns_proxy.top_blocked")}</p>
-              <ul className="grid gap-0.5">
-                {s.top_blocked.slice(0, 5).map((n) => (
-                  <li key={n.name} className="flex justify-between gap-4 text-xs">
-                    <span className="truncate">{n.name}</span>
-                    <span className="tabular-nums text-muted-foreground">{n.count.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
 
+      {b.enabled && data.history && <BlockedHistory history={data.history} />}
       {b.enabled && <DomainCheck />}
 
       <p className="text-xs text-muted-foreground">{t("dns_proxy.ab_note")}</p>

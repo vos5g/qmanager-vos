@@ -109,6 +109,7 @@ func main() {
 	api.StartDataUsage()
 	api.StartNotifier()
 	api.StartDNSProxy()
+	api.StartDNSStats()
 	api.StartLED()
 	api.StartUpdater()
 	log.Println("[Daemon] Background Watchdog started (settings from the Watchdog page)")
@@ -200,6 +201,7 @@ func main() {
 	// Stop background daemons
 	watchdog.Stop()
 	api.SaveDataUsage()
+	api.SaveDNSStats()
 	api.StopDNSProxy()
 	api.StopLED()
 

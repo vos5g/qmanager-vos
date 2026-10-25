@@ -19,6 +19,8 @@ package api
 //	POST {action:"save", encrypted:{...}, blocking:{...}}
 //	POST {action:"update_lists"}     download the blocklists now
 //	POST {action:"check", domain}    is this name blocked?
+//	POST {action:"pause", minutes}   pause blocking (0 = until resumed); {action:"resume"}
+//	POST {action:"reset_stats"}      clear the blocked-lookup history
 
 import (
 	"bufio"
@@ -105,6 +107,9 @@ type dnsProxyConf struct {
 	UpdateError string         `json:"update_error"`
 	ListCounts  map[string]int `json:"list_counts"`
 	ListsKey    string         `json:"lists_key"` // lists the cached file was built from
+
+	// Ad blocking paused until (unix); -1 until resumed, 0 not paused.
+	PausedUntil int64 `json:"paused_until"`
 }
 
 func defaultDNSProxyConf() dnsProxyConf {
@@ -341,6 +346,12 @@ func StartDNSProxy() {
 	dnsp.mu.Lock()
 	dnsp.conf = loadDNSProxyConf()
 	dnsp.listDoms = readBlocklistFile()
+	switch u := dnsp.conf.PausedUntil; {
+	case u == -1:
+		dnsp.proxy.Pause(time.Time{})
+	case u > time.Now().Unix():
+		dnsp.proxy.Pause(time.Unix(u, 0))
+	}
 	if dnsp.conf.active() {
 		if err := dnsp.applyLocked(); err != nil {
 			dnsp.applyErr = err.Error()
@@ -637,7 +648,9 @@ func (s *dnsProxyState) snapshot() map[string]any {
 			"update_error": c.UpdateError,
 			"updating":     updating,
 			"stale":        c.Blocking.Enabled && c.ListsKey != c.Blocking.key(),
+			"paused_until": s.proxy.PausedUntil(),
 		},
+		"history":         dstats.snapshot(time.Now()),
 		"providers":       providers,
 		"resolver":        resolverState(c.Encrypted),
 		"blocklists":      lists,
@@ -646,6 +659,7 @@ func (s *dnsProxyState) snapshot() map[string]any {
 		"plain_upstream":  plainLabel(),
 		"apply_error":     applyErr,
 		"clock_ok":        time.Now().Year() >= 2025,
+		"vosclean_ready":  voscleanSupportsProxy(),
 	}
 	if running {
 		out["stats"] = s.proxy.Stats()
@@ -726,6 +740,42 @@ func (s *Server) HandleDNSProxy(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]any{"success": false, "error": "dns_apply_failed", "detail": err.Error()})
 			return
 		}
+		writeJSON(w, http.StatusOK, dnsp.snapshot())
+	case "pause":
+		var pb struct {
+			Minutes int `json:"minutes"` // 0 = until resumed
+		}
+		if err := json.Unmarshal(raw, &pb); err != nil || pb.Minutes < 0 || pb.Minutes > 24*60 {
+			writeJSON(w, http.StatusOK, map[string]any{"success": false, "error": "reject_field", "detail": "minutes must be 0-1440"})
+			return
+		}
+		dnsp.mu.Lock()
+		if pb.Minutes == 0 {
+			dnsp.proxy.Pause(time.Time{})
+			dnsp.conf.PausedUntil = -1
+		} else {
+			until := time.Now().Add(time.Duration(pb.Minutes) * time.Minute)
+			dnsp.proxy.Pause(until)
+			dnsp.conf.PausedUntil = until.Unix()
+		}
+		err := saveDNSProxyConf(dnsp.conf)
+		dnsp.mu.Unlock()
+		if err != nil {
+			log.Printf("dnsproxy: save pause: %v", err)
+		}
+		writeJSON(w, http.StatusOK, dnsp.snapshot())
+	case "resume":
+		dnsp.mu.Lock()
+		dnsp.proxy.Resume()
+		dnsp.conf.PausedUntil = 0
+		err := saveDNSProxyConf(dnsp.conf)
+		dnsp.mu.Unlock()
+		if err != nil {
+			log.Printf("dnsproxy: save resume: %v", err)
+		}
+		writeJSON(w, http.StatusOK, dnsp.snapshot())
+	case "reset_stats":
+		dstats.reset()
 		writeJSON(w, http.StatusOK, dnsp.snapshot())
 	case "update_lists":
 		dnsp.mu.Lock()
@@ -911,4 +961,13 @@ func saveResolver(b resolverBody) error {
 	}
 	dnsp.applyErr = ""
 	return saveDNSProxyConf(dnsp.conf)
+}
+
+// vosDNSScript is vosclean's DNS helper; versions before vos-v1.2.0 of
+// vos5g-sdx55 don't know DNS_PROXY and can't redirect to the proxy.
+var vosDNSScript = "/data/vosclean/bin/dns.sh"
+
+func voscleanSupportsProxy() bool {
+	b, err := os.ReadFile(vosDNSScript)
+	return err != nil || strings.Contains(string(b), "DNS_PROXY")
 }

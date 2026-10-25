@@ -115,6 +115,7 @@ type Proxy struct {
 	cache *cache
 
 	queries, blocked, hits, enc, fb, fails atomic.Uint64
+	pausedUntil                            atomic.Int64 // unix seconds; 0 = not paused, -1 = until resumed
 	latency                                atomic.Int64 // EWMA in µs
 	since                                  time.Time
 
@@ -294,7 +295,7 @@ func (p *Proxy) Handle(ctx context.Context, q []byte) []byte {
 	enc, plain, fallback, blocking, list, clockOK := p.encrypted, p.plain, p.fallback, p.blocking, p.list, p.clockOK
 	p.mu.RUnlock()
 
-	if blocking && list.Blocked(name) {
+	if blocking && !p.Paused() && list.Blocked(name) {
 		p.blocked.Add(1)
 		p.countBlocked(strings.TrimSuffix(name, "."))
 		return blockedReply(hdr, question)
@@ -363,6 +364,43 @@ func (p *Proxy) countBlocked(name string) {
 	if _, ok := p.top[name]; ok || len(p.top) < 5000 {
 		p.top[name]++
 	}
+}
+
+// Pause stops blocking until the given time; a zero time pauses until Resume.
+func (p *Proxy) Pause(until time.Time) {
+	if until.IsZero() {
+		p.pausedUntil.Store(-1)
+	} else {
+		p.pausedUntil.Store(until.Unix())
+	}
+	p.cache.clear() // cached answers don't include blocked names, but be safe
+}
+
+// Resume ends a pause.
+func (p *Proxy) Resume() { p.pausedUntil.Store(0) }
+
+// Paused reports whether blocking is paused right now.
+func (p *Proxy) Paused() bool {
+	u := p.pausedUntil.Load()
+	return u == -1 || (u > 0 && time.Now().Unix() < u)
+}
+
+// PausedUntil is the pause end (unix), -1 until resumed, 0 when not paused.
+func (p *Proxy) PausedUntil() int64 {
+	if !p.Paused() {
+		return 0
+	}
+	return p.pausedUntil.Load()
+}
+
+// DrainBlocked returns the per-name blocked counts since the last call and
+// starts counting from zero.
+func (p *Proxy) DrainBlocked() map[string]uint64 {
+	p.statMu.Lock()
+	defer p.statMu.Unlock()
+	out := p.top
+	p.top = map[string]uint64{}
+	return out
 }
 
 // Stats returns a snapshot of the counters.

@@ -263,3 +263,35 @@ func TestNewEncryptedValidation(t *testing.T) {
 		t.Fatalf("custom dot: %v", err)
 	}
 }
+
+func TestPauseAndDrain(t *testing.T) {
+	up := &fakeUpstream{name: "f"}
+	p := New("127.0.0.1:0")
+	p.Configure(nil, up, false, true, NewBlocklist([]string{"ads.example.com"}, nil), nil)
+	ctx := context.Background()
+	isBlocked := func() bool {
+		_, a := answers(t, p.Handle(ctx, query(t, "ads.example.com", dnsmessage.TypeA, 1)))
+		return len(a) == 1 && a[0] == "0.0.0.0"
+	}
+	if !isBlocked() {
+		t.Fatal("not blocked")
+	}
+	p.Pause(time.Time{})
+	if isBlocked() || p.PausedUntil() != -1 {
+		t.Fatal("pause until resumed")
+	}
+	p.Resume()
+	p.Pause(time.Now().Add(-time.Second)) // already over
+	if !isBlocked() || p.PausedUntil() != 0 {
+		t.Fatal("expired pause still active")
+	}
+	p.Pause(time.Now().Add(time.Hour))
+	if isBlocked() {
+		t.Fatal("timed pause")
+	}
+	p.Resume()
+	d := p.DrainBlocked()
+	if d["ads.example.com"] != 2 || len(p.DrainBlocked()) != 0 {
+		t.Fatalf("drain %v", d)
+	}
+}

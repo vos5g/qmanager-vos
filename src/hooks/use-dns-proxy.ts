@@ -35,6 +35,19 @@ export interface BlockingState extends BlockingSettings {
   updating: boolean;
   /** The chosen lists changed and haven't been downloaded yet */
   stale: boolean;
+  /** Blocking paused until (unix seconds); -1 until resumed, 0 not paused */
+  paused_until: number;
+}
+
+/** Blocked-lookup history kept across restarts (last 30 days). */
+export interface DnsHistory {
+  /** Last 14 days, oldest first */
+  days: { date: string; queries: number; blocked: number }[];
+  today: { queries: number; blocked: number };
+  total: { queries: number; blocked: number };
+  top: { name: string; count: number }[];
+  /** Counting since (unix seconds) */
+  since: number;
 }
 
 export interface DnsProxyStats {
@@ -93,6 +106,9 @@ export interface DnsProxyStatus {
   /** "Custom DNS" or "Carrier DNS": the plain resolvers behind the proxy */
   plain_upstream: string;
   apply_error: string;
+  history?: DnsHistory;
+  /** vosclean on the stick can redirect DNS to the proxy (vos5g-sdx55 from v1.2.0) */
+  vosclean_ready: boolean;
   clock_ok: boolean;
   stats?: DnsProxyStats;
 }
@@ -134,6 +150,18 @@ export function useDnsProxy() {
     mutationFn: () => post<DnsProxyStatus>({ action: "update_lists" }),
     onSuccess,
   });
+  const pause = useMutation({
+    mutationFn: (minutes: number) => post<DnsProxyStatus>({ action: "pause", minutes }),
+    onSuccess,
+  });
+  const resume = useMutation({
+    mutationFn: () => post<DnsProxyStatus>({ action: "resume" }),
+    onSuccess,
+  });
+  const resetStats = useMutation({
+    mutationFn: () => post<DnsProxyStatus>({ action: "reset_stats" }),
+    onSuccess,
+  });
   const check = useMutation({
     mutationFn: (domain: string) =>
       post<{ domain: string; blocked: boolean; allowlisted: boolean; blocking_enabled: boolean }>({
@@ -148,6 +176,9 @@ export function useDnsProxy() {
     save,
     saveResolver,
     updateLists,
+    pause,
+    resume,
+    resetStats,
     check,
   };
 }

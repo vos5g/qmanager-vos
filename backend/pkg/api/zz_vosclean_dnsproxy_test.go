@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/net/dns/dnsmessage"
 
 	"qmanager-backend/pkg/dnsproxy"
 )
@@ -232,5 +235,96 @@ func TestSaveResolverModes(t *testing.T) {
 	}
 	if c := readConf(); !strings.Contains(c, "DNS_ENABLE=no") || !strings.Contains(c, "DNS_PROXY=no") {
 		t.Fatalf("carrier conf: %s", c)
+	}
+}
+
+func TestDNSStatsHistory(t *testing.T) {
+	dir := t.TempDir()
+	oldFile, oldProxy := dnsStatsFile, dstats.proxy
+	defer func() { dnsStatsFile, dstats.proxy = oldFile, oldProxy }()
+	dnsStatsFile = filepath.Join(dir, "dns_stats.json")
+
+	p := dnsproxy.New("127.0.0.1:0")
+	up := &countingUpstream{}
+	p.Configure(nil, up, false, true, dnsproxy.NewBlocklist([]string{"ads.example.com"}, nil), nil)
+	st := &dnsStatsState{proxy: func() *dnsproxy.Proxy { return p }}
+	st.load()
+	ask := func(name string) { p.Handle(context.Background(), dnsQuery(t, name)) }
+
+	ask("ads.example.com")
+	ask("ads.example.com")
+	ask("good.example.org")
+	day1 := time.Date(2026, 10, 24, 12, 0, 0, 0, time.Local)
+	st.sample(day1)
+	ask("x.ads.example.com")
+	day2 := day1.AddDate(0, 0, 1)
+	st.sample(day2)
+	st.sample(day2) // no new lookups: nothing double-counted
+
+	snap := st.snapshot(day2)
+	days := snap["days"].([]map[string]any)
+	if len(days) != 14 || days[12]["blocked"] != uint64(2) || days[12]["queries"] != uint64(3) || days[13]["blocked"] != uint64(1) {
+		t.Fatalf("days %v", days[11:])
+	}
+	top := snap["top"].([]map[string]any)
+	if len(top) != 2 || top[0]["name"] != "ads.example.com" || top[0]["count"] != uint64(2) {
+		t.Fatalf("top %v", top)
+	}
+	st.save()
+
+	// A restart: history comes back from disk, new counters add on top.
+	st2 := &dnsStatsState{proxy: func() *dnsproxy.Proxy { return dnsproxy.New("127.0.0.1:0") }}
+	st2.load()
+	if st2.d.Days["2026-10-24"].Blocked != 2 || st2.d.Top["ads.example.com"] != 2 {
+		t.Fatalf("reload %+v", st2.d)
+	}
+	st2.reset()
+	if len(st2.d.Days) != 0 || len(st2.d.Top) != 0 {
+		t.Fatal("reset")
+	}
+}
+
+type countingUpstream struct{}
+
+func (countingUpstream) Name() string { return "c" }
+func (countingUpstream) Close()       {}
+func (countingUpstream) Exchange(_ context.Context, q []byte) ([]byte, error) {
+	r := append([]byte(nil), q...)
+	r[2] |= 0x80 // QR
+	return r, nil
+}
+
+func dnsQuery(t *testing.T, name string) []byte {
+	t.Helper()
+	n, err := dnsmessage.NewName(name + ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := dnsmessage.Message{Header: dnsmessage.Header{ID: 1, RecursionDesired: true},
+		Questions: []dnsmessage.Question{{Name: n, Type: dnsmessage.TypeA, Class: dnsmessage.ClassINET}}}
+	b, err := m.Pack()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func TestDNSProxyPauseAction(t *testing.T) {
+	_, _ = setupDNSProxyTest(t)
+	paused := func(out map[string]any) any { return out["blocking"].(map[string]any)["paused_until"] }
+	if out := postDNSProxy(t, map[string]any{"action": "pause", "minutes": 5}); out["success"] != true || paused(out).(float64) < float64(time.Now().Unix()+290) {
+		t.Fatalf("pause 5: %v", out)
+	}
+	if loadDNSProxyConf().PausedUntil <= 0 {
+		t.Fatal("pause not saved")
+	}
+	if out := postDNSProxy(t, map[string]any{"action": "pause", "minutes": 0}); paused(out) != float64(-1) {
+		t.Fatalf("pause forever: %v", paused(out))
+	}
+	if out := postDNSProxy(t, map[string]any{"action": "pause", "minutes": -3}); out["success"] != false {
+		t.Fatal("negative accepted")
+	}
+	if out := postDNSProxy(t, map[string]any{"action": "resume"}); paused(out) != float64(0) || loadDNSProxyConf().PausedUntil != 0 {
+		t.Fatalf("resume: %v", paused(out))
 	}
 }

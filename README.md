@@ -18,7 +18,7 @@
 </div>
 
 <details>
-<summary><b>More pages: Cellular Information, Band Locking, Cell Scanner, Antenna Statistics, Tailscale, Custom DNS, About Device, Latency</b></summary>
+<summary><b>More pages: Cellular Information, Band Locking, Cell Scanner, Antenna Statistics, Tailscale, DNS & Ad Blocking, About Device, Latency</b></summary>
 <br/>
 <div align="center">
   <img src="docs/screenshots/all-pages.png" alt="QManager pages on a VOS 5G" width="900" />
@@ -58,11 +58,12 @@ The full upstream history is kept, with the VOS changes as separate commits on t
 | SMS | Inbox, send, delete. On 5G SA, sending switches to LTE and back automatically. Forwarding of new texts to another number |
 | Connection watchdog | Probes the mobile link (bypassing any VPN) and recovers: restart the data connection, then the radio, then the stick (once per outage, capped per hour) |
 | Alerts | Connection lost (SMS), connection restored and stick restarted (SMS and/or email, sent directly over SMTP), with a log and restart history |
-| Custom DNS | Applied for real: the modem's dnsmasq queries are redirected to your resolvers |
+| DNS | Carrier DNS, a provider (Cloudflare, Quad9, Google, AdGuard, Control D, Mullvad) or your own servers, plain or encrypted (DNS over HTTPS or TLS) with fallback, applied to every device through the modem's dnsmasq |
+| Ad blocking | Blocklists (HaGeZi, OISD, StevenBlack or your own URLs) refreshed weekly, allowlist and extra domains, blocked-lookup counts, domain check |
 | Tailscale | Install (Official download or 15 MB "Tiny" build), log in, start on boot, accept subnet routes, use or advertise an exit node |
 | NetBird | Install the official build, connect with a setup key, start on boot |
 | WireGuard | Connect to any WireGuard VPN: upload, paste or enter configs, edit and delete them; kernel or userspace engine, LAN-only or LAN + stick, kill switch, the config's DNS. 65 Mbit/s through a commercial VPN with the kernel engine |
-| System | Bandwidth monitor, system logs, System Health Check with a redacted support bundle, web console, extra kernel modules, AT terminal (IMEI writes, factory reset and USB-mode changes blocked), speed test |
+| System | Status light (LED off, always or at night), bandwidth monitor, system logs, System Health Check with a redacted support bundle, web console, extra kernel modules, AT terminal (IMEI writes, factory reset and USB-mode changes blocked), speed test |
 
 ## What's hidden (and why)
 

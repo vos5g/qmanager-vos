@@ -150,3 +150,20 @@ The file is created by the first POST; a fresh install with no prior POST will h
 | `refresh` | `() => void` | Re-fetch without showing the loading state |
 
 `DnsSettingsData` parses `currentDNS` and `currentDNS6` (both comma-separated strings from the backend) into individual `dns1`/`dns2`/`dns3` and `dns1v6`/`dns2v6` fields. `SaveDnsParams` mirrors the POST body exactly (all six address fields + `mode` + `nic`).
+
+## VOS build: DNS Servers card, encrypted DNS and ad blocking
+
+On the VOS stick the page is **DNS & Ad Blocking** with two cards, both served by `network/dns_proxy.sh` (`pkg/api/zz_vosclean_dnsproxy.go`, hook `use-dns-proxy.ts`). The upstream Custom DNS card, `dns-providers.ts` and `use-dns-settings.ts` are gone; `network/dns.sh` still answers for compatibility.
+
+* **DNS Servers** — one choice: carrier, a provider from `dnsproxy.Providers`, or custom; encryption Off / HTTPS / TLS (Mullvad is encrypted-only). POST `{action:"save_resolver", mode, provider, protocol, servers, custom_url, fallback}`. Plain servers are written to `custom_dns.json` (a provider's plain IPs double as the fallback when encrypted); encryption sets the proxy's encrypted upstream. GET returns the current choice as `resolver`.
+* **Ad Blocking** — POST `{action:"save", blocking:{enabled, lists, custom_urls, allowlist, denylist}}`, `{action:"update_lists"}`, `{action:"check", domain}`. Lists download in the background (`blocking.updating`), weekly refresh, compiled list in `/data/vosclean/qm/etc/blocklist.txt`.
+
+**Data path:** `pkg/dnsproxy` listens on `127.0.0.1:5335` (UDP+TCP) while encryption or blocking is on. vosclean's `dns.sh` (`DNS_PROXY=yes` in `/data/vosclean/etc/dns.conf`) redirects dnsmasq's upstream queries there; the proxy's own sockets carry `SO_MARK 0xca6d`, which the redirect exempts.
+
+**Invariants**
+
+* The redirect follows a heartbeat (`/tmp/qmanager_dnsproxy.alive`, every 20 s). Stale (>90 s) or port not listening → vosclean falls back to plain servers within a minute. `StopDNSProxy` runs `vosclean dns` on shutdown.
+* Before the clock is set (year < 2025) the proxy uses plain DNS: certificates can't be checked, and NTP itself needs DNS.
+* `applyCustomDNS` (upstream `dns.sh` handler) keeps `DNS_PROXY` via `dnsProxyWanted()` so it never drops the redirect.
+* Save failures roll back to the previous working setup.
+* Clients with their own DNS (Private DNS, iCloud Private Relay, browser DoH) and a WireGuard config's own DNS bypass the proxy.

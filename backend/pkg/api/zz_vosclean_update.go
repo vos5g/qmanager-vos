@@ -52,6 +52,7 @@ const (
 	ghTagPrefix      = "vos-"
 	qmAssetName      = "qmanager-core-armv7"
 	sumsAssetName    = "SHA256SUMS.txt"
+	tsTinyAssetName  = "tailscaled-tiny-armv7"
 	updaterSince     = "v1.2.0" // first release that clears the update marker
 	updateGuardDelay = 180      // seconds before the guard rolls back
 )
@@ -356,6 +357,20 @@ func downloadAsset(rel ghRelease, name, dest string, progress func(done, total i
 		return fmt.Errorf("checksum mismatch for %s", name)
 	}
 	return nil
+}
+
+// latestAsset finds the newest release that has the named asset.
+func latestAsset(name string) (ghRelease, error) {
+	list, err := fetchReleases(false)
+	if err != nil && len(list) == 0 {
+		return ghRelease{}, err
+	}
+	for _, r := range list {
+		if !r.Prerelease && r.asset(name) != nil && r.asset(sumsAssetName) != nil {
+			return r, nil
+		}
+	}
+	return ghRelease{}, fmt.Errorf("no release on github.com/%s has %s", ghRepo, name)
 }
 
 // checkARMExecutable makes sure a download is an ARM Linux executable.

@@ -183,7 +183,7 @@ func tsStatus() map[string]any {
 		if _, err := os.Stat(tsTinyUpload); err == nil {
 			hint += " Tiny: a 15 MB single-binary build uploaded with install.sh is ready to install."
 		} else {
-			hint += " Tiny: build it with tools/build-tailscale-tiny.sh and upload it with install.sh --tailscale-tiny."
+			hint += " Tiny: downloads the 15 MB single-binary build attached to the latest QManager release on GitHub."
 		}
 		out["install_hint"] = hint
 		return out
@@ -633,7 +633,19 @@ func (s *Server) HandleVPNTailscale(w http.ResponseWriter, r *http.Request) {
 func tsInstallTiny() error {
 	fi, err := os.Stat(tsTinyUpload)
 	if err != nil {
-		return fmt.Errorf("no Tiny build uploaded: build it with tools/build-tailscale-tiny.sh, then run install.sh --tailscale-tiny dist/tailscaled-tiny-armv7")
+		// Nothing uploaded with install.sh: fetch the build attached to the
+		// newest QManager release on GitHub (checked against SHA256SUMS.txt).
+		rel, rerr := latestAsset(tsTinyAssetName)
+		if rerr != nil {
+			return fmt.Errorf("Tailscale Tiny download: %v", rerr)
+		}
+		tsInstall.set("running", fmt.Sprintf("Downloading Tailscale Tiny from the %s release...", rel.version()), "")
+		if derr := downloadAsset(rel, tsTinyAssetName, tsTinyUpload, nil); derr != nil {
+			return fmt.Errorf("Tailscale Tiny download: %v", derr)
+		}
+		if fi, err = os.Stat(tsTinyUpload); err != nil {
+			return err
+		}
 	}
 	if fi.Size() < 1<<20 {
 		return fmt.Errorf("%s looks truncated (%d bytes)", tsTinyUpload, fi.Size())

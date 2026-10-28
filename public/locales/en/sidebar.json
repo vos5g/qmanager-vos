@@ -53,6 +53,8 @@
     "logs": "Logs",
     "health_check": "Health Check",
     "web_console": "Web Console",
+    "usb_mode": "USB mode",
+    "modem_diagnostics": "Modem diagnostics",
     "kernel_modules": "Kernel Modules",
     "software_update": "Software Update",
     "at_terminal": "AT Terminal",

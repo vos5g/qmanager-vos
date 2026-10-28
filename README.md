@@ -189,3 +189,55 @@ The fork starts from evairo176 `dev-go` at `2cc6795e`. Each VOS change is its ow
 The licence is **MIT with Commons Clause** (see [LICENSE](LICENSE)): you may use, modify and share it, but not sell it.
 
 This project isn't affiliated with Tri Cascade, Compal, Quectel or Qualcomm. Product names are used only to identify the hardware. Modifying your device is at your own risk.
+
+### All-band unlock, USB mode and modem EFS diagnostics
+
+Cellular → Band Locking has an **All-band unlock** card. It uses the approach documented by
+[maigougou/vos5g-all-band-unlock](https://github.com/maigougou/vos5g-all-band-unlock):
+change only the final regional selector to `rf_bands base="hardware"`, preserving
+all other policy content and the hardware filter. OEM and live EFS policies must
+agree and the source container must match one of the project's three audited
+SHA-256 hashes. Other policies remain inspect-only.
+
+Install the separate, GPL-licensed ARMv7 DIAG helper from vos5g-sdx55:
+
+```bash
+# In vos5g-sdx55 (requires Zig, or CC_ARM pointing to an ARM compiler):
+tools/build-diag-bridge.sh
+./install.sh --diag-bridge dist/vos5g-diag-bridge-armv7
+```
+
+Before writing, QManager saves a private full OEM archive, every supported
+PolicyMan EFS entry (including item files), originals, targets and a hash manifest
+under `/data/vosclean/qm/band-backups/<timestamp>/`. At least 40 MiB free on `/data`
+is required. **Download the private backup to your computer.** It belongs to that
+physical modem. Both policy copies are read back; a failed write attempts rollback
+and keeps the bundle. Reboot is a separate user action. The card verifies both
+copies when opened after reboot and offers **Restore original policy**. An
+interrupted operation blocks a fresh unlock; use its saved backup for recovery.
+If EFS is no longer either the original or target (for example after failed
+rollback), use the private backup with an external recovery tool rather than
+starting another unlock. Factory reset can restore the vendor policy.
+
+**[System Settings → USB mode](http://192.168.225.1:8080/system-settings/usb-mode/)** selects the next-boot composition independently:
+9063 (factory), **9064 (QMI + ECM + MBIM)**, or 9165 (development/DIAG).
+Only modes retaining USB networking for SSH are selectable. QMI-only 9091 and
+other unsupported modes are blocked by both the UI and API. Current mode is read
+from the active kernel USB gadget; next boot is read from the saved boot selector.
+Saving does not
+reboot. The bind-mounted boot selector is staged on systemrw, synced, written
+through its existing inode and read back; its previous contents are retained.
+The unrestricted AT terminal continues to block USB/NV writes.
+
+**System Settings → Modem diagnostics** browses `/policyman` and
+`/nv/item_files/modem` through the stick's local `/dev/diag`, without switching USB
+mode. It supports directory listings, regular/item files, text/XML preview and
+binary downloads with SHA-256 hashes. Symlinks and traversal are refused. This is
+raw evidence for capability analysis, not a decoded list of supported CA/EN-DC
+combinations. Those depend on firmware file formats and radio capability reports.
+There is no arbitrary EFS-write or raw-DIAG API. The helper listens only on
+loopback, runs only during an operation, and is stopped afterwards. Close other
+DIAG sessions before using it. Keep downloads private.
+
+Storage on the Dashboard now includes the real VOS `/data` mount and uses actual
+mount metadata, rather than inventing usage for a missing `/usrdata` directory.

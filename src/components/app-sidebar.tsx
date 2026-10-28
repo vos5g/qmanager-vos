@@ -89,6 +89,8 @@ const data = {
         },
         { t_key: "web_console", url: "/system-settings/web-console" },
         { t_key: "kernel_modules", url: "/system-settings/kernel-modules" },
+        { t_key: "usb_mode", url: "/system-settings/usb-mode" },
+        { t_key: "modem_diagnostics", url: "/system-settings/modem-diagnostics" },
         { t_key: "status_light", url: "/system-settings/status-light" },
       ],
     },

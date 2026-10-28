@@ -5,6 +5,7 @@ import { LockKeyhole, InfoIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import BandCardsComponent from "./band-cards";
 import BandSettingsComponent from "./band-settings";
+import { BandUnlockCard } from "./band-unlock-card";
 import { useBandLocking } from "@/hooks/use-band-locking";
 import { useModemStatus } from "@/hooks/use-modem-status";
 import { useConnectionScenarios } from "@/hooks/use-connection-scenarios";
@@ -201,6 +202,7 @@ const BandLockingComponent = () => {
           })}
         />
       </div>
+      <BandUnlockCard />
     </div>
   );
 };

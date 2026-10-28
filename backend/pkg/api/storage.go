@@ -23,7 +23,7 @@ type StorageMount struct {
 }
 
 // HandleStorage returns filesystem usage for the mounts that matter on the
-// Quectel modem: rootfs (/), firmware, user data (/usrdata), plus RAM.
+// VOS modem: rootfs (/), firmware, /data (or /usrdata on other models), plus RAM.
 // Uses statfs (no shell exec) so it is cheap for the poller.
 func (s *Server) HandleStorage(w http.ResponseWriter, r *http.Request) {
 	mounts := s.collectStorage()
@@ -34,20 +34,25 @@ func (s *Server) HandleStorage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) collectStorage() []StorageMount {
-	// (path, filesystem label, friendly label)
+	// Only report real mounted filesystems, using their actual backing device.
 	targets := []struct {
-		Path   string
-		Fs     string
-		Label  string
+		Path  string
+		Label string
 	}{
-		{"/", "ubi0:rootfs", "System"},
-		{"/firmware", "ubi1:modem", "Firmware"},
-		{"/usrdata", "ubi2_0", "User data"},
-		{"/tmp", "tmpfs", "RAM"},
+		{"/", "System"},
+		{"/firmware", "Firmware"},
+		{"/data", "Data"},
+		{"/usrdata", "User data"},
+		{"/tmp", "Temporary files"},
 	}
-	roSet := readOnlyMounts()
+	mountInfo, _ := os.ReadFile("/proc/mounts")
+	actual := storageMounts(mountInfo)
 	mounts := make([]StorageMount, 0, len(targets))
 	for _, t := range targets {
+		info, mounted := actual[t.Path]
+		if !mounted { // An ordinary directory would report its parent's capacity.
+			continue
+		}
 		var st syscall.Statfs_t
 		if err := syscall.Statfs(t.Path, &st); err != nil {
 			continue
@@ -65,13 +70,13 @@ func (s *Server) collectStorage() []StorageMount {
 		}
 		mounts = append(mounts, StorageMount{
 			MountPoint:  t.Path,
-			Filesystem:  t.Fs,
+			Filesystem:  info.Filesystem,
 			TotalBytes:  total,
 			UsedBytes:   used,
 			FreeBytes:   free,
 			UsedPercent: pct,
 			Label:       t.Label,
-			ReadOnly:    roSet[t.Path],
+			ReadOnly:    info.ReadOnly,
 		})
 	}
 	// Add RAM from /proc/meminfo (MemTotal / MemAvailable).
@@ -89,27 +94,18 @@ func (s *Server) collectStorage() []StorageMount {
 	return mounts
 }
 
-type memInfo struct{ total, available uint64 }
-
-// readOnlyMounts returns a set of mount points that are mounted read-only,
-// parsed from /proc/mounts (field 4 contains "ro").
-func readOnlyMounts() map[string]bool {
-	ro := make(map[string]bool)
-	b, err := os.ReadFile("/proc/mounts")
-	if err != nil {
-		return ro
-	}
-	for _, line := range splitLines(b) {
-		fields := splitFields(line)
-		if len(fields) < 4 {
-			continue
-		}
-		if hasField(fields[3], "ro") {
-			ro[fields[1]] = true
+func storageMounts(data []byte) map[string]StorageMount {
+	result := make(map[string]StorageMount)
+	for _, line := range splitLines(data) {
+		f := splitFields(line)
+		if len(f) >= 4 {
+			result[f[1]] = StorageMount{Filesystem: f[0], ReadOnly: hasField(f[3], "ro")}
 		}
 	}
-	return ro
+	return result
 }
+
+type memInfo struct{ total, available uint64 }
 
 func splitLines(b []byte) []string {
 	var out []string

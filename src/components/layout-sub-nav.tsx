@@ -37,6 +37,7 @@ import {
   type LucideIcon,
   Stethoscope,
   SquareTerminal,
+  Usb,
 } from "lucide-react";
 import { visibleTabs } from "@/constants/vos-features";
 
@@ -88,6 +89,8 @@ const SECTION_NAV_DATA: Record<SectionType, SubNavItem[]> = {
     { title: "Health Check", href: "/system-settings/system-health-check", icon: Stethoscope },
     { title: "Web Console", href: "/system-settings/web-console", icon: SquareTerminal },
     { title: "Kernel Modules", href: "/system-settings/kernel-modules", icon: Cpu },
+    { title: "USB mode", href: "/system-settings/usb-mode", icon: Usb },
+    { title: "Modem diagnostics", href: "/system-settings/modem-diagnostics", icon: Stethoscope },
     { title: "Status Light", href: "/system-settings/status-light", icon: Lightbulb },
     { title: "Software Update", href: "/system-settings/software-update", icon: Download },
     { title: "AT Terminal", href: "/system-settings/at-terminal", icon: Terminal },

@@ -69,7 +69,13 @@ export function enterRebootFlow(source: RebootSource): void {
  */
 export function rebootNow(source: RebootSource): void {
   if (typeof window === "undefined") return;
-  void fetch(REBOOT_CGI, { method: "POST" }).catch(() => {});
+  // The backend refuses a bare POST (it must never reboot by default), so
+  // name the action explicitly.
+  void fetch(REBOOT_CGI, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "reboot" }),
+  }).catch(() => {});
   enterRebootFlow(source);
 }
 

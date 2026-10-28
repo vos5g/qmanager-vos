@@ -40,6 +40,8 @@ const ConfigurationBackupComponent = () => {
     try {
       const res = await authFetch("/cgi-bin/quecmanager/system/reboot.sh", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reboot" }),
       });
       if (!res.ok) {
         throw new Error(`reboot_failed: HTTP ${res.status}`);

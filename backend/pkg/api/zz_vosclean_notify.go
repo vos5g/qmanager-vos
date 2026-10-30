@@ -265,6 +265,8 @@ type notifier struct {
 	uptime    func() time.Duration
 	bootID    func() string
 	connected func() (ok, known bool)
+	hostModem func() bool // router modem mode: a USB host has the data connection
+	hmWatch   hostModemWatch
 }
 
 var notify = newNotifier()
@@ -289,6 +291,7 @@ func newNotifier() *notifier {
 			}
 			return qmBool(raw["is_connected"]), true
 		},
+		hostModem: hostModemActive,
 	}
 }
 
@@ -327,6 +330,16 @@ func (n *notifier) tick() {
 	a := loadAlertChannels()
 
 	ok, known := n.connected()
+	if n.hostModem != nil {
+		host := n.hostModem()
+		n.hmWatch.update(host, now)
+		if host {
+			// The stick handed its connection to the USB host on purpose: not an outage.
+			known = false
+			n.downSince = time.Time{}
+			n.sentLost = map[string]bool{}
+		}
+	}
 	if known {
 		switch {
 		case !ok && n.downSince.IsZero():

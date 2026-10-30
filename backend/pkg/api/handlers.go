@@ -65,6 +65,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/cgi-bin/quecmanager/system/realtime.sh", RequireAuth(s.HandleRealtime))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/storage.sh", RequireAuth(s.HandleStorage))
 	mux.HandleFunc("/cgi-bin/quecmanager/system/usb_mode.sh", RequireAuth(s.HandleUSBMode))
+	mux.HandleFunc("/cgi-bin/quecmanager/system/host_modem.sh", RequireAuth(s.HandleHostModem)) // vosclean: router modem mode
 	mux.HandleFunc("/cgi-bin/quecmanager/system/modem_efs.sh", RequireAuth(s.HandleModemEFS))
 	mux.HandleFunc("/cgi-bin/quecmanager/bands/unlock.sh", RequireAuth(s.HandleBandUnlock))
 	mux.HandleFunc("/cgi-bin/quecmanager/public/overview.sh", s.HandlePublicOverview)

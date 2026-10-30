@@ -763,7 +763,8 @@ export type NetworkEventType =
   | "config_restore_completed" // Configuration restore completed
   | "lan_address_changed" // LAN IP address / subnet changed by user
   | "thermal_throttle" // vosclean: modem thermal throttling started, rose or ended
-  | "data_usage"; // vosclean: monthly allowance warning
+  | "data_usage" // vosclean: monthly allowance warning
+  | "host_modem"; // vosclean: router modem mode hand-over (USB host took / returned the data connection)
 
 /** Severity level for UI icon coloring */
 export type EventSeverity = "info" | "warning" | "error";

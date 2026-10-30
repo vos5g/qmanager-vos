@@ -38,4 +38,5 @@ export const EVENT_TAB_CATEGORIES: Record<NetworkEventType, EventTabCategory> =
     lan_address_changed: "dataConnection",
     thermal_throttle: "dataConnection", // vosclean: throttling slows the data connection
     data_usage: "dataConnection", // vosclean: allowance warnings
+    host_modem: "dataConnection", // vosclean: router modem mode hand-overs
   };

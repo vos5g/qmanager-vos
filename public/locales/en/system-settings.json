@@ -814,5 +814,22 @@
     "confirm_no_updater": "{{version}} is older than this updater: it has no Software Update page. To come back, run vosclean qm-rollback over SSH, or install a newer release with install.sh.",
     "toast_done": "QManager {{version}} is running",
     "toast_error": "Couldn't start the update"
+  },
+  "host_modem": {
+    "card_title": "Router modem mode",
+    "card_description": "Lets a router use the stick as its modem over QMI or MBIM, such as OpenWrt with USB mode 9064.",
+    "badge_host": "Router has the connection",
+    "badge_stick": "Stick has the connection",
+    "badge_off": "Off",
+    "switch": "Hand the connection to a router automatically",
+    "switch_hint": "The stick and the router can't both connect to the SIM's APN. While a router uses the stick as its modem, the stick drops its own connection so the router's connection works. When a computer or router uses USB tethering again, the stick reconnects.",
+    "since": "Router connected since {{time}}.",
+    "while_host": "While the router has the connection, the stick has no internet of its own: the watchdog and connection alerts pause, and Tailscale and other services on the stick are offline. QManager itself can only be reached again once a computer uses the stick over USB tethering.",
+    "needs_9064": "Routers can only use the stick as a modem in a USB mode that offers QMI or MBIM, such as 9064 above.",
+    "unsupported": "Update vosclean on the stick (vos5g-sdx55) to use router modem mode.",
+    "toast_on": "Router modem mode on",
+    "toast_off": "Router modem mode off",
+    "save": "Save",
+    "toast_error": "Couldn't change router modem mode"
   }
 }
